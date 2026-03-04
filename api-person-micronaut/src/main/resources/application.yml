@@ -1,0 +1,7 @@
+# otel.traces.exporter=otlp
+# datasources.default.db-type=postgres
+# micronaut.application.name=api-person
+# jpa.default.properties.hibernate.hbm2ddl.auto=update
+# datasources.default.driver-class-name=org.postgresql.Driver
+
+

@@ -1,0 +1,6 @@
+applicationType: default
+defaultPackage: io.github.wesleyosantos91
+testFramework: junit
+sourceLanguage: java
+buildTool: maven
+features: [app-name, hibernate-jpa, http-client-test, jakarta-data, java, java-application, jdbc-hikari, junit, logback, maven, maven-enforcer-plugin, micronaut-aot, micronaut-http-validation, micronaut-processing-compiler-args, netty-server, postgres, properties, readme, serialization-jackson, shade, static-resources, test-resources, tracing-opentelemetry-exporter-otlp]

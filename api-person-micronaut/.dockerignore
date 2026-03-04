@@ -1,0 +1,9 @@
+target/
+!target/classes/
+!target/dependency/
+.git/
+.gitignore
+.idea/
+*.iml
+*.md
+.micronaut/
