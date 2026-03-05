@@ -1,0 +1,432 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: 01-desafio
+meta:
+  id: wrk_c9e5812bfb59460ba9d766f8a55a67a2
+  created: 1772678492111
+  modified: 1772678492111
+  description: ""
+collection:
+  - url: http://localhost:8080/api/persons
+    name: SAVE
+    meta:
+      id: req_d1a5975cb0c94fdebf89b8231022e6df
+      created: 1772678538466
+      modified: 1772680152192
+      isPrivate: false
+      description: ""
+      sortKey: -1772678538466
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"name": "Wesley Santos",
+        	"email": "wesley_delete@example.com",
+        	"birthDate": "1991-01-15"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: X-Correlation-Id
+        value: req-001-person-create
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8080/api/persons/:id
+    name: FIND_BY_ID
+    meta:
+      id: req_19e413a38ba548509c80aaa6c493d69c
+      created: 1772678638876
+      modified: 1772678762587
+      isPrivate: false
+      description: ""
+      sortKey: -1772678638876
+    method: GET
+    headers:
+      - name: X-Correlation-Id
+        value: req-002-person-get
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+    pathParameters:
+      - name: id
+        value: 019cbbe0-4f7c-76bf-91ad-b62b69523a4a
+  - url: http://localhost:8080/api/persons/:id
+    name: UPDATE
+    meta:
+      id: req_7e660727e1db4745b9259123ed0a1283
+      created: 1772678700490
+      modified: 1772679862578
+      isPrivate: false
+      description: ""
+      sortKey: -1772463406827.75
+    method: PUT
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"name": "Wesley Oliveira Santos",
+        	"email": "wesley@example.com",
+        	"birthDate": "1991-01-15"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: X-Correlation-Id
+        value: req-003-person-update
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+    pathParameters:
+      - name: id
+        value: 019cbbe0-4f7c-76bf-91ad-b62b69523a4a
+  - url: http://localhost:8080/api/persons
+    name: SAVE - ERRO 400
+    meta:
+      id: req_2557eeafb9444087b357d4ba200bc5cb
+      created: 1772678810268
+      modified: 1772678821366
+      isPrivate: false
+      description: ""
+      sortKey: -1772535117440.5
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"name": "",
+        	"email": "email-invalido",
+        	"birthDate": "2099-01-01"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: X-Correlation-Id
+        value: req-001-person-create
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8080/api/persons/abc
+    name: FIND_BY_ID - ERRO 400
+    meta:
+      id: req_f2b093d68f3a4610a1f3ec435d3bba1a
+      created: 1772678891429
+      modified: 1772678899710
+      isPrivate: false
+      description: ""
+      sortKey: -1772678588671
+    method: GET
+    headers:
+      - name: X-Correlation-Id
+        value: req-002-person-get
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8080/api/persons/11111111-1111-1111-1111-111111111111
+    name: FIND_BY_ID - ERRO 404
+    meta:
+      id: req_9c523c986a1f42908c67b2b01abf3ca0
+      created: 1772678922940
+      modified: 1772678925201
+      isPrivate: false
+      description: ""
+      sortKey: -1772678563568.5
+    method: GET
+    headers:
+      - name: X-Correlation-Id
+        value: req-002-person-get
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8080/api/persons
+    name: SAVE - ERRO 409/422
+    meta:
+      id: req_590fc77ef7ec4f01a38738a1fce882e1
+      created: 1772678950416
+      modified: 1772678957513
+      isPrivate: false
+      description: ""
+      sortKey: -1772463406927.75
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"name": "Outro Nome",
+        	"email": "wesley@example.com",
+        	"birthDate": "1990-01-01"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: X-Correlation-Id
+        value: req-001-person-create
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8080/api/persons
+    name: FIND_PAGED
+    meta:
+      id: req_7bbc5054ecc642aabf587dd88e47f31a
+      created: 1772679829496
+      modified: 1772679857994
+      isPrivate: false
+      description: ""
+      sortKey: -1772678669683
+    method: GET
+    parameters:
+      - name: page
+        value: "0"
+        disabled: false
+      - name: size
+        value: "5"
+        disabled: false
+      - name: sort
+        value: createdAt,desc
+        disabled: false
+    headers:
+      - name: X-Correlation-Id
+        value: req-list-001
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8080/api/persons
+    name: FIND_PAGED_BY_NAME
+    meta:
+      id: req_b51f59a550c94ac88525fbfac9335735
+      created: 1772679890811
+      modified: 1772679905989
+      isPrivate: false
+      description: ""
+      sortKey: -1772679890811
+    method: GET
+    parameters:
+      - name: page
+        value: "0"
+        disabled: false
+      - name: size
+        value: "10"
+        disabled: false
+      - name: sort
+        value: name,asc
+        disabled: false
+      - name: name
+        value: wesley
+        disabled: false
+    headers:
+      - name: X-Correlation-Id
+        value: req-list-002
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8080/api/persons
+    name: FIND_PAGED_BY_EMAIL
+    meta:
+      id: req_34a4cc39c28f42a0a6f409aa268e52f1
+      created: 1772679923208
+      modified: 1772679934607
+      isPrivate: false
+      description: ""
+      sortKey: -1772679923208
+    method: GET
+    parameters:
+      - name: page
+        value: "0"
+        disabled: false
+      - name: size
+        value: "10"
+        disabled: false
+      - name: email
+        value: wesley@example.com
+        disabled: false
+    headers:
+      - name: X-Correlation-Id
+        value: req-list-003
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8080/api/persons/:id
+    name: UPDATE _PARTIAL_BY_NAME
+    meta:
+      id: req_b67718c5313848c7b229fac947b553c0
+      created: 1772679948409
+      modified: 1772680029460
+      isPrivate: false
+      description: ""
+      sortKey: -1772463406727.75
+    method: PATCH
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"name": "Wesley O. Santos"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: X-Correlation-Id
+        value: req-patch-001
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+    pathParameters:
+      - name: id
+        value: 019cbbe0-4f7c-76bf-91ad-b62b69523a4a
+  - url: http://localhost:8080/api/persons/:id
+    name: UPDATE _PARTIAL_BY_EMAIL
+    meta:
+      id: req_ef6306b734f94c3eb1864652d3e61755
+      created: 1772680038467
+      modified: 1772680049058
+      isPrivate: false
+      description: ""
+      sortKey: -1772427551571.375
+    method: PATCH
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"email": "wesley.novo@example.com"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: X-Correlation-Id
+        value: req-patch-001
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+    pathParameters:
+      - name: id
+        value: 019cbbe0-4f7c-76bf-91ad-b62b69523a4a
+  - url: http://localhost:8080/api/persons/:id
+    name: UPDATE _PARTIAL_BY_MULTIPLES
+    meta:
+      id: req_a6d91f38dcde4c3ca094255e5b17236c
+      created: 1772680067614
+      modified: 1772680107368
+      isPrivate: false
+      description: ""
+      sortKey: -1772409623993.1875
+    method: PATCH
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"name": "Wesley O. S.",
+        	"birthDate": "1991-01-16"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: X-Correlation-Id
+        value: req-patch-001
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+    pathParameters:
+      - name: id
+        value: 019cbbe0-4f7c-76bf-91ad-b62b69523a4a
+  - url: http://localhost:8080/api/persons/:id
+    name: DELETE_BY_ID
+    meta:
+      id: req_50a72c2680724e64b6f22ad559b7ceba
+      created: 1772680128211
+      modified: 1772680165299
+      isPrivate: false
+      description: ""
+      sortKey: -1772409623893.1875
+    method: DELETE
+    headers:
+      - name: X-Correlation-Id
+        value: req-delete-001
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+    pathParameters:
+      - name: id
+        value: 019cbbf8-8e01-7af6-a5f1-b9a843279d2e
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_29e43b60fcea3ca460b6b15eaa7fd7ef15efdd87
+    created: 1772678492114
+    modified: 1772678492114
+environments:
+  name: Base Environment
+  meta:
+    id: env_29e43b60fcea3ca460b6b15eaa7fd7ef15efdd87
+    created: 1772678492113
+    modified: 1772678492113
+    isPrivate: false

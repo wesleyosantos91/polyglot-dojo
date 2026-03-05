@@ -1,0 +1,111 @@
+spring:
+  application:
+    name: api-person-spring
+  threads:
+    virtual:
+      enabled: true
+
+  main:
+    keep-alive: true
+
+  mvc:
+    problemdetails:
+      enabled: true
+  data:
+    web:
+      pageable:
+        default-page-size: 10
+        max-page-size: 100
+      sort:
+        sort-parameter: sort
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: true
+
+app:
+  datasource:
+    writer:
+      url: jdbc:postgresql://localhost:5432/dev?tcpKeepAlive=true
+      username: postgres
+      password: postgres
+      hikari:
+        pool-name: writer-pool
+        maximum-pool-size: 5
+        minimum-idle: 1
+        connection-timeout: 1000
+        validation-timeout: 500
+        max-lifetime: 1740000
+        keepalive-time: 300000
+
+    reader:
+      url: jdbc:postgresql://localhost:5432/dev?tcpKeepAlive=true
+      username: postgres
+      password: postgres
+      hikari:
+        pool-name: reader-pool
+        maximum-pool-size: 5
+        minimum-idle: 1
+        connection-timeout: 1000
+        validation-timeout: 500
+        max-lifetime: 1740000
+        keepalive-time: 300000
+
+  db:
+    concurrency:
+      write-limit: 5
+      read-limit: 5
+  logging:
+    adaptive:
+      slow-request-threshold-ms: 700
+      include-headers-on-error: true
+      include-querystring-on-warn: true
+      max-payload-log-bytes: 2048
+      mask-headers: [authorization, cookie, set-cookie]
+      mask-json-fields: [password, token, access_token, refresh_token, cpf, email]
+
+management:
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: 1.0
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/traces
+    logging:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/logs
+  otlp:
+    metrics:
+      export:
+        url: http://localhost:4318/v1/metrics
+        step: 10s
+        enabled: true
+
+logging:
+  structured:
+    format:
+      console: logstash
+    json:
+      stacktrace:
+        root: first
+      add:
+        service: ${spring.application.name}
+        runtime: "java-25"
+        framework: "spring-boot-4"
+  pattern:
+    correlation: "[%X{correlation_id:-},%X{traceId:-},%X{spanId:-}] "
+  include-application-name: false
