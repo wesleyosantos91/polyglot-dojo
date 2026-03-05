@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: api-person-spring
+  threads:
+    virtual:
+      enabled: true
+
+  main:
+    keep-alive: true
+
+  datasource:
+    url: jdbc:h2:mem:aot-training;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        '[format_sql]': false
+        dialect: org.hibernate.dialect.H2Dialect
+
+  h2:
+    console:
+      enabled: false
+
+# Desabilita datasources customizados durante training
+app:
+  datasource:
+    writer:
+      enabled: false
+    reader:
+      enabled: false
+
+# Habilita apenas health endpoint para training
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  health:
+    defaults:
+      enabled: true
+
+logging:
+  level:
+    root: WARN
+    '[io.github.wesleyosantos91]': INFO

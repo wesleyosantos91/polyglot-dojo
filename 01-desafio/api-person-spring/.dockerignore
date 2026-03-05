@@ -1,0 +1,11 @@
+target/
+.git/
+.gitignore
+*.md
+!AOT-TRAINING.md
+.vscode/
+.kiro/
+*.log
+*.aot
+*.aotconf
+!docker/

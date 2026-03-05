@@ -4,6 +4,10 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### AOT Cache ###
+*.aot
+*.aotconf
+
 ### STS ###
 .apt_generated
 .classpath

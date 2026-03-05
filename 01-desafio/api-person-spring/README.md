@@ -86,18 +86,45 @@ src/main/java/io/github/wesleyosantos91/
 
 ## ⚡ JEP 483 — AOT Cache (JDK 25)
 
-O Dockerfile utiliza **5 stages** para máxima otimização de startup:
+O Dockerfile utiliza **4 stages** para máxima otimização de startup com **training real**:
 
 ```
-  BUILD          EXTRACT         RECORD          TRAIN          RUNTIME
-┌─────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
-│ mvn     │   │ extract  │   │ AOTMode= │   │ AOTMode= │   │ AOTCache │
-│ package │──▶│ layers   │──▶│ record   │──▶│ create   │──▶│ = app.aot│
-│         │   │          │   │ .aotconf │   │ app.aot  │   │ ZGC      │
-└─────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘
+  BUILD          EXTRACT              TRAIN                    RUNTIME
+┌─────────┐   ┌──────────┐   ┌──────────────────┐   ┌──────────────────┐
+│ mvn     │   │ extract  │   │ 1. Start app     │   │ java             │
+│ package │──▶│ layers   │──▶│ 2. Run collection│──▶│ -XX:AOTCache=    │
+│         │   │          │   │ 3. Shutdown      │   │   app.aot        │
+│         │   │          │   │ 4. Generate .aot │   │ + ZGC            │
+└─────────┘   └──────────┘   └──────────────────┘   └──────────────────┘
+                                     ↓
+                              app.aot (cache)
 ```
 
-A flag `-Dspring.context.exit=onRefresh` permite que o **Record** finalize automaticamente após carregar todas as classes — sem necessidade de `kill`.
+### Training com Cenários Reais
+
+Durante o **stage train** do build:
+
+1. **Inicia** a aplicação com `-XX:AOTCacheOutput=app.aot` + profile `aot-training` (H2)
+2. **Aguarda** health check (até 60s)
+3. **Executa** 15 cenários reais da collection:
+   - ✅ CRUD completo (Create, Read, Update, Patch, Delete)
+   - ✅ Validações e erros (400, 404, 409/422)
+   - ✅ Buscas e filtros (nome, email)
+   - ✅ Paginação e ordenação
+   - ✅ Atualizações parciais
+4. **Finaliza** gracefully (SIGTERM)
+5. **Gera** `app.aot` durante o shutdown da JVM
+6. **Copia** para a imagem final
+
+**Benefícios:**
+- ⚡ Startup 30-50% mais rápido
+- 🚀 Warm-up instantâneo dos paths mais usados
+- 💾 Menor uso de CPU no início
+- 🎯 Performance otimizada para cenários reais
+
+**Scripts de Training:**
+- `docker/run-training.sh` — Orquestra o processo completo (start → health check → collection → shutdown)
+- `docker/training-collection.sh` — Executa os 15 cenários da API com curl
 
 ---
 
@@ -106,7 +133,15 @@ A flag `-Dspring.context.exit=onRefresh` permite que o **Record** finalize autom
 ### Build
 
 ```bash
+# Build normal (usa cache do Docker)
 docker build -t api-person-spring .
+
+# Build sem cache (recomendado após mudanças no Dockerfile)
+docker build --no-cache -t api-person-spring .
+
+# Ou use o script helper
+chmod +x build-docker.sh
+./build-docker.sh
 ```
 
 ### Run
@@ -125,15 +160,15 @@ docker run -d --name api-person-spring \
 
 | Stage | Base | Propósito |
 |---|---|---|
-| `build` | `maven:3.9.12-eclipse-temurin-25` | Compila o JAR |
+| `build` | `maven:3.9.12-eclipse-temurin-25` | Compila o JAR com cache de dependências |
 | `extract` | `eclipse-temurin:25-jdk` | Extrai layered JAR (CDS/AOT friendly) |
-| `record` | `eclipse-temurin:25-jdk` | Grava perfil de classes (`app.aotconf`) |
-| `train` | `eclipse-temurin:25-jdk` | Gera AOT cache binário (`app.aot`) |
-| `runtime` | `eclipse-temurin:25-jre` | Imagem final mínima com ZGC |
+| `train` | `eclipse-temurin:25-jdk` | Inicia app + executa collection + gera AOT cache (`app.aot`) |
+| `runtime` | `eclipse-temurin:25-jre` | Imagem final mínima com ZGC + AOT cache |
 
 **Boas práticas aplicadas:**
 - ✅ Usuário non-root (`appuser`)
 - ✅ Layered JAR para cache de Docker layers
+- ✅ Training com cenários reais (15 requests da collection)
 - ✅ ZGC (low-latency GC)
 - ✅ `MaxRAMPercentage=75%` (container-aware)
 - ✅ `ExitOnOutOfMemoryError` (fail-fast)

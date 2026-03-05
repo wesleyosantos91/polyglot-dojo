@@ -2,47 +2,43 @@
 FROM maven:3.9.12-eclipse-temurin-25 AS build
 WORKDIR /workspace
 ENV TZ=America/Sao_Paulo
-ENV JAVA_TOOL_OPTIONS="-Duser.timezone=America/Sao_Paulo"
-COPY . .
-RUN mvn -DskipTests -DskipITs package
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
+COPY src ./src
+RUN mvn -DskipTests -DskipITs package -B
 
-# 2) Extrai o JAR em camadas (layout AOT cache/CDS friendly)
+# 2) Extrai o JAR em camadas
 FROM eclipse-temurin:25-jdk AS extract
 WORKDIR /opt/app
 ENV TZ=America/Sao_Paulo
-ENV JAVA_TOOL_OPTIONS="-Duser.timezone=America/Sao_Paulo"
 COPY --from=build /workspace/target/*.jar app.jar
 RUN java -Djarmode=tools -jar app.jar extract --layers --destination extracted
 
-# 3) Training — Record (grava o perfil de treinamento usando fat-jar)
-FROM eclipse-temurin:25-jdk AS record
-WORKDIR /opt/app
-ENV TZ=America/Sao_Paulo
-ENV JAVA_TOOL_OPTIONS="-Duser.timezone=America/Sao_Paulo"
-COPY --from=build /workspace/target/*.jar app.jar
-RUN java -XX:AOTMode=record -XX:AOTConfiguration=app.aotconf \
-  -Dspring.context.exit=onRefresh -jar app.jar
-
-# 4) Training — Create (gera o AOT cache a partir do perfil)
+# 3) Training — Gera o AOT cache executando collection de testes
 FROM eclipse-temurin:25-jdk AS train
 WORKDIR /opt/app
 ENV TZ=America/Sao_Paulo
-ENV JAVA_TOOL_OPTIONS="-Duser.timezone=America/Sao_Paulo"
-COPY --from=build /workspace/target/*.jar app.jar
-COPY --from=record /opt/app/app.aotconf app.aotconf
-RUN java -XX:AOTMode=create -XX:AOTConfiguration=app.aotconf \
-  -XX:AOTCache=app.aot -jar app.jar
 
-# 5) Runtime (usa o AOT cache com layers cacheáveis)
+# Instala curl e procps para executar a collection
+RUN apt-get update && apt-get install -y curl procps && rm -rf /var/lib/apt/lists/*
+
+COPY --from=build /workspace/target/*.jar app.jar
+COPY docker/training-collection.sh .
+COPY docker/run-training.sh .
+RUN chmod +x training-collection.sh run-training.sh
+
+# Executa o training completo
+RUN ./run-training.sh
+
+# 4) Runtime (usa o AOT cache com layers cacheáveis)
 FROM eclipse-temurin:25-jre AS runtime
 WORKDIR /opt/app
 
 # Segurança: usuário não-root
 RUN groupadd --system appuser && \
-  useradd  --system --gid appuser --home-dir /opt/app appuser
+  useradd --system --gid appuser --home-dir /opt/app appuser
 
 ENV TZ=America/Sao_Paulo
-ENV JAVA_TOOL_OPTIONS="-Duser.timezone=America/Sao_Paulo"
 
 COPY --from=extract --chown=appuser:appuser /opt/app/extracted/dependencies/ ./
 COPY --from=extract --chown=appuser:appuser /opt/app/extracted/spring-boot-loader/ ./
@@ -54,10 +50,11 @@ USER appuser
 
 EXPOSE 8080
 
-ENTRYPOINT ["java",                              \
-  "-XX:AOTCache=/opt/app/app.aot",              \
-  "-XX:+UseZGC",                                \
-  "-XX:MaxRAMPercentage=75.0",                  \
-  "-XX:InitialRAMPercentage=75.0",              \
-  "-XX:+ExitOnOutOfMemoryError",                \
+ENTRYPOINT ["java", \
+  "-XX:AOTCache=/opt/app/app.aot", \
+  "-XX:+UseZGC", \
+  "-XX:MaxRAMPercentage=75.0", \
+  "-XX:InitialRAMPercentage=75.0", \
+  "-XX:+ExitOnOutOfMemoryError", \
+  "-Duser.timezone=America/Sao_Paulo", \
   "org.springframework.boot.loader.launch.JarLauncher"]

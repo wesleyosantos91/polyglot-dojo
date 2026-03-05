@@ -2,10 +2,10 @@ package io.github.wesleyosantos91;
 
 import org.springframework.boot.SpringApplication;
 
-public class TestApiPersonApplication {
+public class TestApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.from(ApiPersonApplication::main).with(TestcontainersConfiguration.class).run(args);
+		SpringApplication.from(Application::main).with(TestcontainersConfiguration.class).run(args);
 	}
 
 }
