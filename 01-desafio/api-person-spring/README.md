@@ -306,6 +306,111 @@ O `application.yml` define apenas o nome da aplicação. As demais configuraçõ
 | `MANAGEMENT_OPENTELEMETRY_LOGGING_EXPORT_OTLP_ENDPOINT` | `http://localhost:4318/v1/logs` | Export de logs |
 | `MANAGEMENT_OTLP_METRICS_EXPORT_URL` | `http://localhost:4318/v1/metrics` | Export de métricas |
 
+### Resiliência (Retry)
+
+Retry com backoff exponencial e jitter está aplicado no `PersonService` para falhas transitórias de acesso a dados.
+
+| Propriedade | Padrão | Descrição |
+|---|---|---|
+| `app.resilience.retry.max-retries` | `3` | Número máximo de tentativas |
+| `app.resilience.retry.delay` | `100ms` | Delay inicial entre tentativas |
+| `app.resilience.retry.multiplier` | `2.0` | Fator exponencial do backoff |
+| `app.resilience.retry.jitter` | `25ms` | Jitter para reduzir thundering herd |
+| `app.resilience.retry.max-delay` | `2s` | Teto máximo do backoff |
+
+---
+
+## 🧭 Logs Estruturados e Troubleshooting
+
+A aplicação usa logs JSON estruturados (formato `logstash`) com campos de correlação para investigação distribuída.
+
+Campos-chave em cada evento:
+- `correlation_id`
+- `request_id`
+- `trace_id`
+- `span_id`
+- `event_type`
+- `http_method`, `http_path`, `http_status`, `latency_ms`
+
+Headers propagados:
+- `X-Correlation-Id`
+- `X-Request-Id`
+
+Metadados padrão para observabilidade:
+- `service.name`
+- `service.version`
+- `service.namespace`
+- `deployment.environment`
+
+### Diagnóstico profundo de erro (DB + Retry)
+
+Erros de integridade de dados agora trazem diagnóstico técnico adicional:
+
+- Log estruturado:
+  - `db.sql_state`
+  - `db.error_code`
+  - `db.message` (sanitizada/truncada)
+- `ProblemDetail`:
+  - `sql_state`
+  - `db_error_code`
+
+Retry de banco com backoff exponencial + jitter também é rastreado:
+
+- Evento `db_retry_scheduled`: `retry_attempt`, `retry_will_retry`, `next_delay_ms`, `next_delay_min_ms`, `next_delay_max_ms`
+- Evento `db_retry_exhausted`: tentativas esgotadas para a chamada
+
+Métricas novas:
+- `db.retry.attempts`
+- `db.retry.next_delay` (ms)
+- `db.retry.exhausted`
+- `http.access.events` (labels: `event_type`, `outcome`, `status_family`)
+
+### Variáveis úteis
+
+| Variável | Padrão | Descrição |
+|---|---|---|
+| `APP_ENV` | `dev` | Ambiente de execução |
+| `APP_VERSION` | `0.0.1-SNAPSHOT` | Versão da aplicação no log |
+| `APP_NAMESPACE` | `workshop` | Namespace lógico do serviço |
+
+### Fluxo rápido de troubleshooting
+
+1. Capture `X-Correlation-Id` ou `X-Request-Id` da resposta com erro.
+2. Busque no agregador de logs por esse ID.
+3. Use `trace_id` para abrir o trace distribuído e localizar o span com latência/falha.
+4. Se faltar detalhe, aumente nível de log temporariamente via Actuator e volte para `INFO` após análise.
+
+```bash
+# Elevar para DEBUG (temporário)
+curl -X POST http://localhost:8080/actuator/loggers/io.github.wesleyosantos91 \
+  -H "Content-Type: application/json" \
+  -d "{\"configuredLevel\":\"DEBUG\"}"
+
+# Restaurar para INFO
+curl -X POST http://localhost:8080/actuator/loggers/io.github.wesleyosantos91 \
+  -H "Content-Type: application/json" \
+  -d "{\"configuredLevel\":\"INFO\"}"
+```
+
+### Exemplos de busca por plataforma
+
+```text
+Splunk
+index=prod service.name=api-person-spring correlation_id=<id>
+
+Datadog
+service:api-person-spring @correlation_id:<id>
+
+New Relic (NRQL)
+SELECT * FROM Log WHERE service.name = 'api-person-spring' AND correlation_id = '<id>'
+
+CloudWatch Logs Insights
+fields @timestamp, correlation_id, request_id, trace_id, message
+| filter correlation_id = "<id>"
+| sort @timestamp desc
+| limit 100
+```
+
 ---
 
 ## 📦 Dependências Principais

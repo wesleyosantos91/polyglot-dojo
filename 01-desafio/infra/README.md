@@ -35,3 +35,4 @@ docker compose down
 1. Subir a infra em `docker/`.
 2. Validar saúde da API.
 3. Executar carga em `performance/k6`.
+4. Acompanhar alertas em Prometheus (`Status > Alerts`) e Grafana.

@@ -8,13 +8,15 @@ import io.github.wesleyosantos91.domain.entity.PersonEntity;
 import io.github.wesleyosantos91.domain.exception.ConflictException;
 import io.github.wesleyosantos91.domain.exception.ResourceNotFoundException;
 import io.github.wesleyosantos91.domain.repository.PersonRepository;
+import io.github.wesleyosantos91.infrastructure.resilience.DbReadConcurrencyLimit;
+import io.github.wesleyosantos91.infrastructure.resilience.DbRetryable;
+import io.github.wesleyosantos91.infrastructure.resilience.DbWriteConcurrencyLimit;
 import io.micrometer.core.annotation.Timed;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.resilience.annotation.ConcurrencyLimit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,10 +34,8 @@ public class PersonService {
     @Timed(value = "person.service.operation", extraTags = {"operation", "find_all"},
             description = "Duration of PersonService operations")
     @Transactional(readOnly = true)
-    @ConcurrencyLimit(
-            limitString = "${app.db.concurrency.read-limit:3}",
-            policy = ConcurrencyLimit.ThrottlePolicy.REJECT
-    )
+    @DbRetryable
+    @DbReadConcurrencyLimit
     public Page<PersonEntity> findAllPaged(String name, String email, Pageable pageable) {
         Specification<PersonEntity> spec = Specification.unrestricted();
 
@@ -57,10 +57,8 @@ public class PersonService {
     @Timed(value = "person.service.operation", extraTags = {"operation", "find_by_id"},
             description = "Duration of PersonService operations")
     @Transactional(readOnly = true)
-    @ConcurrencyLimit(
-            limitString = "${app.db.concurrency.read-limit:3}",
-            policy = ConcurrencyLimit.ThrottlePolicy.REJECT
-    )
+    @DbRetryable
+    @DbReadConcurrencyLimit
     public Optional<PersonEntity> findById(UUID id) {
         return personRepository.findById(id);
     }
@@ -68,10 +66,8 @@ public class PersonService {
     @Timed(value = "person.service.operation", extraTags = {"operation", "find_by_id"},
             description = "Duration of PersonService operations")
     @Transactional(readOnly = true)
-    @ConcurrencyLimit(
-            limitString = "${app.db.concurrency.read-limit:3}",
-            policy = ConcurrencyLimit.ThrottlePolicy.REJECT
-    )
+    @DbRetryable
+    @DbReadConcurrencyLimit
     public PersonEntity findByIdOrThrow(UUID id) {
         return personRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Person", id));
@@ -80,10 +76,8 @@ public class PersonService {
     @Timed(value = "person.service.operation", extraTags = {"operation", "find_by_email"},
             description = "Duration of PersonService operations")
     @Transactional(readOnly = true)
-    @ConcurrencyLimit(
-            limitString = "${app.db.concurrency.read-limit:3}",
-            policy = ConcurrencyLimit.ThrottlePolicy.REJECT
-    )
+    @DbRetryable
+    @DbReadConcurrencyLimit
     public Optional<PersonEntity> findByEmail(String email) {
         return personRepository.findByEmail(normalizeEmail(email));
     }
@@ -91,10 +85,8 @@ public class PersonService {
     @Timed(value = "person.service.operation", extraTags = {"operation", "create"},
             description = "Duration of PersonService operations")
     @Transactional
-    @ConcurrencyLimit(
-            limitString = "${app.db.concurrency.write-limit:2}",
-            policy = ConcurrencyLimit.ThrottlePolicy.REJECT
-    )
+    @DbRetryable
+    @DbWriteConcurrencyLimit
     public PersonEntity create(PersonEntity person) {
         if (person == null) {
             throw new IllegalArgumentException("Person payload must not be null");
@@ -119,10 +111,8 @@ public class PersonService {
     @Timed(value = "person.service.operation", extraTags = {"operation", "update"},
             description = "Duration of PersonService operations")
     @Transactional
-    @ConcurrencyLimit(
-            limitString = "${app.db.concurrency.write-limit:2}",
-            policy = ConcurrencyLimit.ThrottlePolicy.REJECT
-    )
+    @DbRetryable
+    @DbWriteConcurrencyLimit
     public PersonEntity update(UUID id, PersonEntity payload) {
         if (payload == null) {
             throw new IllegalArgumentException("Person payload must not be null");
@@ -147,10 +137,8 @@ public class PersonService {
     @Timed(value = "person.service.operation", extraTags = {"operation", "patch"},
             description = "Duration of PersonService operations")
     @Transactional
-    @ConcurrencyLimit(
-            limitString = "${app.db.concurrency.write-limit:2}",
-            policy = ConcurrencyLimit.ThrottlePolicy.REJECT
-    )
+    @DbRetryable
+    @DbWriteConcurrencyLimit
     public PersonEntity patch(UUID id, PersonPatchRequest patchRequest) {
         if (patchRequest == null) {
             throw new IllegalArgumentException("Patch payload must not be null");
@@ -181,10 +169,8 @@ public class PersonService {
     @Timed(value = "person.service.operation", extraTags = {"operation", "delete"},
             description = "Duration of PersonService operations")
     @Transactional
-    @ConcurrencyLimit(
-            limitString = "${app.db.concurrency.write-limit:2}",
-            policy = ConcurrencyLimit.ThrottlePolicy.REJECT
-    )
+    @DbRetryable
+    @DbWriteConcurrencyLimit
     public void deleteById(UUID id) {
         if (!personRepository.existsById(id)) {
             throw new ResourceNotFoundException("Person", id);

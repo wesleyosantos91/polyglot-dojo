@@ -61,6 +61,23 @@ docker compose down -v
 - O serviço `api-person-spring` depende de `postgres` saudável.
 - A configuração de observabilidade está em `./observability/`.
 - Dashboards e datasources do Grafana estão em `./grafana/`.
+- Regras de alerta do Prometheus estão em `./observability/alert-rules.yml`.
+
+## Alertas ativos (Prometheus)
+
+Arquivo: `./observability/alert-rules.yml`
+
+- `ApiPersonServerErrorRateHigh`: taxa de `http_access` com `outcome=SERVER_ERROR` acima de 5%.
+- `ApiPersonLatencyP95High`: p95 HTTP acima de 500ms.
+- `ApiPersonLatencyP99High`: p99 HTTP acima de 1s.
+- `ApiPersonDbRetryExhausted`: pelo menos 1 retry de banco esgotado nos últimos 5 minutos.
+
+Para validar no Prometheus:
+
+```bash
+curl -s http://localhost:9090/api/v1/rules
+curl -s http://localhost:9090/api/v1/alerts
+```
 
 ## Dockerfile da API Spring
 

@@ -7,6 +7,7 @@ import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
+import java.sql.SQLException;
 import java.net.URI;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
@@ -108,14 +109,26 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ProblemDetail handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest request) {
         personMetrics.recordError("DATA_INTEGRITY_VIOLATION");
-        log.atWarn()
+        DbErrorDetails dbErrorDetails = extractDbErrorDetails(ex);
+
+        var event = log.atWarn()
                 .setMessage("data_integrity_violation")
                 .setCause(ex)
                 .addKeyValue("error_code", "DATA_INTEGRITY_VIOLATION")
-                .addKeyValue("path", request.getRequestURI())
-                .log();
+                .addKeyValue("path", request.getRequestURI());
 
-        return problem(
+        if (dbErrorDetails.hasSqlState()) {
+            event = event.addKeyValue("db.sql_state", dbErrorDetails.sqlState());
+        }
+        if (dbErrorDetails.hasErrorCode()) {
+            event = event.addKeyValue("db.error_code", dbErrorDetails.errorCode());
+        }
+        if (dbErrorDetails.hasMessage()) {
+            event = event.addKeyValue("db.message", dbErrorDetails.message());
+        }
+        event.log();
+
+        ProblemDetail pd = problem(
                 HttpStatus.CONFLICT,
                 "Data conflict",
                 "The request conflicts with current data state.",
@@ -123,6 +136,15 @@ public class GlobalExceptionHandler {
                 "DATA_INTEGRITY_VIOLATION",
                 request
         );
+
+        if (dbErrorDetails.hasSqlState()) {
+            pd.setProperty("sql_state", dbErrorDetails.sqlState());
+        }
+        if (dbErrorDetails.hasErrorCode()) {
+            pd.setProperty("db_error_code", dbErrorDetails.errorCode());
+        }
+
+        return pd;
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -283,6 +305,10 @@ public class GlobalExceptionHandler {
         if (correlationId != null) {
             pd.setProperty("correlation_id", correlationId);
         }
+        String requestId = MDC.get("request_id");
+        if (requestId != null) {
+            pd.setProperty("request_id", requestId);
+        }
 
         Tracer tracer = tracerProvider.getIfAvailable();
         if (tracer != null) {
@@ -309,5 +335,57 @@ public class GlobalExceptionHandler {
         }
 
         return map;
+    }
+
+    private DbErrorDetails extractDbErrorDetails(Throwable throwable) {
+        Throwable current = throwable;
+        int depth = 0;
+
+        while (current != null && depth++ < 16) {
+            if (current instanceof SQLException sqlException) {
+                return new DbErrorDetails(
+                        normalizeSqlState(sqlException.getSQLState()),
+                        sqlException.getErrorCode(),
+                        sanitizeDbMessage(sqlException.getMessage())
+                );
+            }
+            current = current.getCause();
+        }
+
+        return DbErrorDetails.empty();
+    }
+
+    private String normalizeSqlState(String sqlState) {
+        return (sqlState == null || sqlState.isBlank()) ? null : sqlState;
+    }
+
+    private String sanitizeDbMessage(String message) {
+        if (message == null || message.isBlank()) {
+            return null;
+        }
+        int maxLength = 512;
+        if (message.length() <= maxLength) {
+            return message;
+        }
+        return message.substring(0, maxLength) + "...(truncated)";
+    }
+
+    private record DbErrorDetails(String sqlState, Integer errorCode, String message) {
+
+        static DbErrorDetails empty() {
+            return new DbErrorDetails(null, null, null);
+        }
+
+        boolean hasSqlState() {
+            return sqlState != null;
+        }
+
+        boolean hasErrorCode() {
+            return errorCode != null;
+        }
+
+        boolean hasMessage() {
+            return message != null;
+        }
     }
 }

@@ -1,0 +1,61 @@
+groups:
+  - name: api-person-spring-alerts
+    interval: 30s
+    rules:
+      - alert: ApiPersonServerErrorRateHigh
+        expr: |
+          (
+            sum(rate(http_access_events_total{service_name="api-person-spring",event_type="http_access",outcome="SERVER_ERROR"}[5m]))
+            /
+            clamp_min(sum(rate(http_access_events_total{service_name="api-person-spring",event_type="http_access"}[5m])), 0.001)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: api-person-spring
+          signal: errors
+        annotations:
+          summary: "Taxa de erro 5xx acima de 5% em api-person-spring"
+          description: "Eventos http_access com outcome=SERVER_ERROR acima do SLO por 5 minutos."
+
+      - alert: ApiPersonLatencyP95High
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(http_server_request_duration_seconds_bucket{service_name="api-person-spring"}[5m])) by (le)
+          ) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          service: api-person-spring
+          signal: latency
+        annotations:
+          summary: "Latência p95 alta em api-person-spring"
+          description: "Latência p95 acima de 500ms por 10 minutos."
+
+      - alert: ApiPersonLatencyP99High
+        expr: |
+          histogram_quantile(
+            0.99,
+            sum(rate(http_server_request_duration_seconds_bucket{service_name="api-person-spring"}[5m])) by (le)
+          ) > 1.0
+        for: 5m
+        labels:
+          severity: critical
+          service: api-person-spring
+          signal: latency
+        annotations:
+          summary: "Latência p99 crítica em api-person-spring"
+          description: "Latência p99 acima de 1s por 5 minutos."
+
+      - alert: ApiPersonDbRetryExhausted
+        expr: |
+          sum(increase(db_retry_exhausted_total{service_name="api-person-spring"}[5m])) > 0
+        for: 0m
+        labels:
+          severity: warning
+          service: api-person-spring
+          signal: resilience
+        annotations:
+          summary: "Retry de banco esgotado em api-person-spring"
+          description: "Houve ao menos um caso de retry esgotado (db_retry_exhausted) nos últimos 5 minutos."

@@ -59,6 +59,13 @@ app:
     concurrency:
       write-limit: 5
       read-limit: 5
+  resilience:
+    retry:
+      max-retries: 3
+      delay: 100ms
+      multiplier: 2.0
+      jitter: 25ms
+      max-delay: 2s
   logging:
     adaptive:
       slow-request-threshold-ms: 700
@@ -97,7 +104,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,loggers
   opentelemetry:
     tracing:
       export:
@@ -121,10 +128,21 @@ logging:
     json:
       stacktrace:
         root: first
+        max-length: 8192
+        max-throwable-depth: 60
+        include-hashes: true
       add:
-        service: ${spring.application.name}
-        runtime: "java-25"
-        framework: "spring-boot-4"
+        "service.name": ${spring.application.name}
+        "service.version": ${APP_VERSION:0.0.1-SNAPSHOT}
+        "service.namespace": ${APP_NAMESPACE:workshop}
+        "deployment.environment": ${APP_ENV:dev}
+        "runtime.name": "java"
+        "runtime.version": "25"
+        "framework.name": "spring-boot"
+        "framework.version": "4.0.3"
   pattern:
     correlation: "[%X{correlation_id:-},%X{traceId:-},%X{spanId:-}] "
   include-application-name: false
+  level:
+    root: INFO
+    io.github.wesleyosantos91.infrastructure.logging: INFO

@@ -9,6 +9,7 @@ import io.github.wesleyosantos91.domain.exception.ResourceNotFoundException;
 import io.github.wesleyosantos91.infrastructure.metrics.PersonMetrics;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -77,6 +78,21 @@ class GlobalExceptionHandlerTest {
         var pd = handler.handleDataIntegrity(ex, request);
         assertThat(pd.getStatus()).isEqualTo(409);
         assertThat(pd.getProperties().get("error_code")).isEqualTo("DATA_INTEGRITY_VIOLATION");
+    }
+
+    @Test
+    @DisplayName("handleDataIntegrity — includes sql_state and db_error_code when SQL exception is present")
+    void handleDataIntegrity_includesSqlDiagnostics() {
+        var ex = new DataIntegrityViolationException(
+                "constraint violation",
+                new SQLException("duplicate key", "23505", 1062)
+        );
+
+        var pd = handler.handleDataIntegrity(ex, request);
+
+        assertThat(pd.getStatus()).isEqualTo(409);
+        assertThat(pd.getProperties().get("sql_state")).isEqualTo("23505");
+        assertThat(pd.getProperties().get("db_error_code")).isEqualTo(1062);
     }
 
     @Test
@@ -191,6 +207,19 @@ class GlobalExceptionHandlerTest {
             assertThat(pd.getProperties().get("correlation_id")).isEqualTo("abc-123");
         } finally {
             MDC.remove("correlation_id");
+        }
+    }
+
+    @Test
+    @DisplayName("problem — includes request_id property when MDC has it set")
+    void problem_includesRequestIdFromMdc() {
+        MDC.put("request_id", "req-123");
+        try {
+            var pd = handler.handleNotFound(
+                    new ResourceNotFoundException("Person", "some-id"), request);
+            assertThat(pd.getProperties().get("request_id")).isEqualTo("req-123");
+        } finally {
+            MDC.remove("request_id");
         }
     }
 

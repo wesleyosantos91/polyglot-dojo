@@ -21,6 +21,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class CorrelationMdcFilter extends OncePerRequestFilter {
 
     private static final String HEADER_CORRELATION_ID = "X-Correlation-Id";
+    private static final String HEADER_REQUEST_ID = "X-Request-Id";
 
     private final ObjectProvider<Tracer> tracerProvider;
 
@@ -36,11 +37,16 @@ public class CorrelationMdcFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         String incomingCorrelationId = request.getHeader(HEADER_CORRELATION_ID);
+        String incomingRequestId = request.getHeader(HEADER_REQUEST_ID);
         String correlationId = (incomingCorrelationId != null && !incomingCorrelationId.isBlank())
                 ? incomingCorrelationId
                 : UUID.randomUUID().toString();
+        String requestId = (incomingRequestId != null && !incomingRequestId.isBlank())
+                ? incomingRequestId
+                : UUID.randomUUID().toString();
 
         MDC.put("correlation_id", correlationId);
+        MDC.put("request_id", requestId);
         MDC.put("http_method", request.getMethod());
         MDC.put("http_path", request.getRequestURI());
         MDC.put("client_ip", extractClientIp(request));
@@ -55,17 +61,20 @@ public class CorrelationMdcFilter extends OncePerRequestFilter {
 
                 if (traceId != null) {
                     MDC.put("traceId", traceId);
+                    MDC.put("trace_id", traceId);
                     if (incomingCorrelationId == null || incomingCorrelationId.isBlank()) {
                         MDC.put("correlation_id", traceId);
                     }
                 }
                 if (spanId != null) {
                     MDC.put("spanId", spanId);
+                    MDC.put("span_id", spanId);
                 }
             }
         }
 
         response.setHeader(HEADER_CORRELATION_ID, MDC.get("correlation_id"));
+        response.setHeader(HEADER_REQUEST_ID, requestId);
 
         try {
             filterChain.doFilter(request, response);
