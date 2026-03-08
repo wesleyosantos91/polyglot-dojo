@@ -180,10 +180,10 @@ services:
           cpus: "0.5"
 
   api-person-spring:
-#    build:
-#      context: ../api-person-spring
-#      dockerfile: Dockerfile
-    image: wesleyosantos91/api-person-spring:0.0.1-snapshot
+    build:
+      context: ../api-person-spring
+      dockerfile: Dockerfile
+#    image: wesleyosantos91/api-person-spring:0.0.1-snapshot
     container_name: api_person_spring
     restart: unless-stopped
     environment:

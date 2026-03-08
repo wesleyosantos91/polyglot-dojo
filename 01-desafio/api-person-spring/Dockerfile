@@ -8,19 +8,19 @@ COPY src ./src
 RUN mvn -DskipTests -DskipITs package -B
 
 # 2) Extrai o JAR em camadas
-FROM eclipse-temurin:25-jdk AS extract
+FROM eclipse-temurin:25-jre AS extract
 WORKDIR /opt/app
 ENV TZ=America/Sao_Paulo
 COPY --from=build /workspace/target/*.jar app.jar
 RUN java -Djarmode=tools -jar app.jar extract --layers --destination extracted
 
 # 3) Training — Gera o AOT cache executando collection de testes
-FROM eclipse-temurin:25-jdk AS train
+FROM eclipse-temurin:25-jre AS train
 WORKDIR /opt/app
 ENV TZ=America/Sao_Paulo
 
-# Instala curl e procps para executar a collection
-RUN apt-get update && apt-get install -y curl procps && rm -rf /var/lib/apt/lists/*
+# Instala curl, procps e tzdata para executar a collection
+RUN apt-get update && apt-get install -y curl procps tzdata && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /workspace/target/*.jar app.jar
 COPY docker/training-collection.sh .
@@ -33,6 +33,9 @@ RUN ./run-training.sh
 # 4) Runtime (usa o AOT cache com layers cacheáveis)
 FROM eclipse-temurin:25-jre AS runtime
 WORKDIR /opt/app
+
+# Dependência para HEALTHCHECK HTTP
+RUN apt-get update && apt-get install -y wget && rm -rf /var/lib/apt/lists/*
 
 # Segurança: usuário não-root
 RUN groupadd --system appuser && \
@@ -61,4 +64,6 @@ ENTRYPOINT ["java", \
   "-XX:InitialRAMPercentage=50.0", \
   "-XX:+ExitOnOutOfMemoryError", \
   "-Duser.timezone=America/Sao_Paulo", \
-  "org.springframework.boot.loader.launch.JarLauncher"]
+  "-cp", \
+  "/opt/app/*:/opt/app/lib/*", \
+  "io.github.wesleyosantos91.Application"]

@@ -6,6 +6,11 @@ echo "🎯 Iniciando processo de AOT Training..."
 # Inicia a aplicação em background com AOT recording
 echo "🚀 Iniciando aplicação com AOT recording..."
 java -XX:AOTCacheOutput=app.aot \
+  -XX:+UseZGC \
+  -XX:MaxRAMPercentage=75.0 \
+  -XX:InitialRAMPercentage=50.0 \
+  -XX:+ExitOnOutOfMemoryError \
+  -Duser.timezone=America/Sao_Paulo \
   -Dspring.profiles.active=aot-training \
   -jar app.jar > /tmp/app.log 2>&1 &
 
@@ -46,8 +51,9 @@ fi
 echo "🛑 Finalizando aplicação para gerar AOT cache..."
 kill -TERM $APP_PID
 
-# Aguarda o processo finalizar (máximo 30s)
-for i in {1..30}; do
+# Aguarda o processo finalizar (AOT pode levar mais tempo para montar o cache)
+EXIT_TIMEOUT=180
+for i in $(seq 1 $EXIT_TIMEOUT); do
   if ! kill -0 $APP_PID 2>/dev/null; then
     echo "   ✓ Aplicação finalizada após ${i}s"
     break
@@ -57,10 +63,20 @@ done
 
 # Se ainda estiver rodando, força o kill
 if kill -0 $APP_PID 2>/dev/null; then
-  echo "   ⚠️  Forçando finalização..."
+  echo "   ⚠️  Processo ainda ativo após ${EXIT_TIMEOUT}s, forçando finalização..."
   kill -9 $APP_PID 2>/dev/null || true
   sleep 2
 fi
+
+# A materialização do app.aot pode continuar após o processo principal encerrar
+AOT_TIMEOUT=120
+echo "⏳ Aguardando arquivo app.aot ser materializado..."
+for i in $(seq 1 $AOT_TIMEOUT); do
+  if [ -f "app.aot" ]; then
+    break
+  fi
+  sleep 1
+done
 
 # Verifica se o AOT cache foi gerado
 if [ -f "app.aot" ]; then
