@@ -8,6 +8,7 @@ import io.github.wesleyosantos91.domain.entity.PersonEntity;
 import io.github.wesleyosantos91.domain.exception.ConflictException;
 import io.github.wesleyosantos91.domain.exception.ResourceNotFoundException;
 import io.github.wesleyosantos91.domain.repository.PersonRepository;
+import io.micrometer.core.annotation.Timed;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -28,6 +29,8 @@ public class PersonService {
         this.personMapper = personMapper;
     }
 
+    @Timed(value = "person.service.operation", extraTags = {"operation", "find_all"},
+            description = "Duration of PersonService operations")
     @Transactional(readOnly = true)
     @ConcurrencyLimit(
             limitString = "${app.db.concurrency.read-limit:3}",
@@ -51,6 +54,8 @@ public class PersonService {
         return personRepository.findAll(spec, pageable);
     }
 
+    @Timed(value = "person.service.operation", extraTags = {"operation", "find_by_id"},
+            description = "Duration of PersonService operations")
     @Transactional(readOnly = true)
     @ConcurrencyLimit(
             limitString = "${app.db.concurrency.read-limit:3}",
@@ -60,6 +65,8 @@ public class PersonService {
         return personRepository.findById(id);
     }
 
+    @Timed(value = "person.service.operation", extraTags = {"operation", "find_by_id"},
+            description = "Duration of PersonService operations")
     @Transactional(readOnly = true)
     @ConcurrencyLimit(
             limitString = "${app.db.concurrency.read-limit:3}",
@@ -70,6 +77,8 @@ public class PersonService {
                 .orElseThrow(() -> new ResourceNotFoundException("Person", id));
     }
 
+    @Timed(value = "person.service.operation", extraTags = {"operation", "find_by_email"},
+            description = "Duration of PersonService operations")
     @Transactional(readOnly = true)
     @ConcurrencyLimit(
             limitString = "${app.db.concurrency.read-limit:3}",
@@ -79,6 +88,8 @@ public class PersonService {
         return personRepository.findByEmail(normalizeEmail(email));
     }
 
+    @Timed(value = "person.service.operation", extraTags = {"operation", "create"},
+            description = "Duration of PersonService operations")
     @Transactional
     @ConcurrencyLimit(
             limitString = "${app.db.concurrency.write-limit:2}",
@@ -105,6 +116,8 @@ public class PersonService {
         return personRepository.save(person);
     }
 
+    @Timed(value = "person.service.operation", extraTags = {"operation", "update"},
+            description = "Duration of PersonService operations")
     @Transactional
     @ConcurrencyLimit(
             limitString = "${app.db.concurrency.write-limit:2}",
@@ -131,6 +144,8 @@ public class PersonService {
         return personRepository.save(current);
     }
 
+    @Timed(value = "person.service.operation", extraTags = {"operation", "patch"},
+            description = "Duration of PersonService operations")
     @Transactional
     @ConcurrencyLimit(
             limitString = "${app.db.concurrency.write-limit:2}",
@@ -163,6 +178,8 @@ public class PersonService {
         return personRepository.save(current);
     }
 
+    @Timed(value = "person.service.operation", extraTags = {"operation", "delete"},
+            description = "Duration of PersonService operations")
     @Transactional
     @ConcurrencyLimit(
             limitString = "${app.db.concurrency.write-limit:2}",

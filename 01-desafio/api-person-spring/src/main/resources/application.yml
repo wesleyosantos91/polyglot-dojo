@@ -77,15 +77,20 @@ management:
       percentiles-histogram:
         http.server.request.duration: true
         hikari.connections: true
+        person.service.operation: true
       percentiles:
         http.server.request.duration: [0.5, 0.95, 0.99]
+        person.service.operation: [0.5, 0.95, 0.99]
       # Buckets alinhados a SLOs: 50ms, 100ms, 200ms, 500ms, 1s, 2s
       slo:
         http.server.request.duration: 50ms, 100ms, 200ms, 500ms, 1s, 2s
+        person.service.operation: 50ms, 200ms, 500ms
       minimum-expected-value:
         http.server.request.duration: 1ms
+        person.service.operation: 1ms
       maximum-expected-value:
         http.server.request.duration: 10s
+        person.service.operation: 5s
   tracing:
     sampling:
       probability: 1.0

@@ -37,7 +37,7 @@ services:
       - "8888:8888"
       - "13133:13133"
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:13133/"]
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:13133/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -178,6 +178,42 @@ services:
         limits:
           memory: 256m
           cpus: "0.5"
+
+  api-person-spring:
+#    build:
+#      context: ../api-person-spring
+#      dockerfile: Dockerfile
+    image: wesleyosantos91/api-person-spring:0.0.1-snapshot
+    container_name: api_person_spring
+    restart: unless-stopped
+    environment:
+      APP_DATASOURCE_WRITER_URL: jdbc:postgresql://postgres:5432/dev?tcpKeepAlive=true
+      APP_DATASOURCE_WRITER_USERNAME: postgres
+      APP_DATASOURCE_WRITER_PASSWORD: postgres
+      APP_DATASOURCE_READER_URL: jdbc:postgresql://postgres:5432/dev?tcpKeepAlive=true
+      APP_DATASOURCE_READER_USERNAME: postgres
+      APP_DATASOURCE_READER_PASSWORD: postgres
+      MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT: http://otel-collector:4318/v1/traces
+      MANAGEMENT_OPENTELEMETRY_LOGGING_EXPORT_OTLP_ENDPOINT: http://otel-collector:4318/v1/logs
+      MANAGEMENT_OTLP_METRICS_EXPORT_URL: http://otel-collector:4318/v1/metrics
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      postgres:
+        condition: service_healthy
+#      otel-collector:
+#        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 768m
+          cpus: "1.0"
 
 volumes:
   postgres_data:

@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 
 import io.github.wesleyosantos91.domain.exception.ConflictException;
 import io.github.wesleyosantos91.domain.exception.ResourceNotFoundException;
+import io.github.wesleyosantos91.infrastructure.metrics.PersonMetrics;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
@@ -35,6 +36,9 @@ class GlobalExceptionHandlerTest {
 
     @Mock
     ObjectProvider<io.micrometer.tracing.Tracer> tracerProvider;
+
+    @Mock
+    PersonMetrics personMetrics;
 
     @Mock
     HttpServletRequest request;

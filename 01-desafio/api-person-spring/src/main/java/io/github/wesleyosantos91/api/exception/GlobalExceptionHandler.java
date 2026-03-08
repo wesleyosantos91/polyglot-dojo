@@ -2,6 +2,7 @@ package io.github.wesleyosantos91.api.exception;
 
 import io.github.wesleyosantos91.domain.exception.BusinessException;
 import io.github.wesleyosantos91.domain.exception.ResourceNotFoundException;
+import io.github.wesleyosantos91.infrastructure.metrics.PersonMetrics;
 import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;
 import jakarta.servlet.http.HttpServletRequest;
@@ -35,13 +36,16 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     private final ObjectProvider<Tracer> tracerProvider;
+    private final PersonMetrics personMetrics;
 
-    public GlobalExceptionHandler(ObjectProvider<Tracer> tracerProvider) {
+    public GlobalExceptionHandler(ObjectProvider<Tracer> tracerProvider, PersonMetrics personMetrics) {
         this.tracerProvider = tracerProvider;
+        this.personMetrics = personMetrics;
     }
 
     @ExceptionHandler(InvocationRejectedException.class)
     public ProblemDetail handleInvocationRejected(InvocationRejectedException ex, HttpServletRequest request) {
+        personMetrics.recordError("RESOURCE_BUSY");
         log.atWarn()
                 .setMessage("invocation_rejected")
                 .setCause(ex)
@@ -61,6 +65,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ProblemDetail handleNotFound(ResourceNotFoundException ex, HttpServletRequest request) {
+        personMetrics.recordError("RESOURCE_NOT_FOUND");
         // INFO sem stack trace — 404 é erro esperado de cliente, não requer investigação
         log.atInfo()
                 .setMessage("resource_not_found")
@@ -81,6 +86,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public ProblemDetail handleBusiness(BusinessException ex, HttpServletRequest request) {
+        personMetrics.recordError(ex.getErrorCode());
         // WARN sem stack trace — violação de regra de negócio é esperada, não um bug
         log.atWarn()
                 .setMessage("business_error")
@@ -101,6 +107,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ProblemDetail handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest request) {
+        personMetrics.recordError("DATA_INTEGRITY_VIOLATION");
         log.atWarn()
                 .setMessage("data_integrity_violation")
                 .setCause(ex)
@@ -237,6 +244,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleGeneric(Exception ex, HttpServletRequest request) {
+        personMetrics.recordError("INTERNAL_ERROR");
         log.atError()
                 .setMessage("unhandled_exception")
                 .setCause(ex)
