@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn compile:*)",
+      "Bash(gh api:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(curl -sL \"https://raw.githubusercontent.com/wesleyosantos91/TechLabProjects/main/docker/grafana/provisioning/dashboards/4-golden-sinals.json\" -o \"/tmp/4-golden-sinals.json\")",
+      "Read(//tmp/**)",
+      "Bash(curl -sL \"https://raw.githubusercontent.com/wesleyosantos91/TechLabProjects/main/docker/grafana/provisioning/dashboards/4-golden-sinals.json\" -o \"C:/Users/Administrador/AppData/Local/Temp/4-golden-sinals.json\")",
+      "Read(//c/Users/Administrador/AppData/Local/Temp/**)"
+    ]
+  }
+}
