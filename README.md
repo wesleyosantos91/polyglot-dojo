@@ -28,10 +28,10 @@ Um **dojo de engenharia backend** onde você pratica os mesmos 29 desafios em 4 
 
 | Projeto | Stack | Versão | Runtime | Dockerfile | README |
 |---|---|---|---|---|---|
-| [`api-person-spring`](api-person-spring/) | Spring Boot | 4.0.3 | JDK 25 (JEP 483 AOT) | 5 stages | [README](api-person-spring/README.md) |
-| [`api-person-micronaut`](api-person-micronaut/) | Micronaut | 4.10.9 | JDK 25 (JEP 483 AOT) | 4 stages | [README](api-person-micronaut/README.md) |
-| [`api-person-quarkus`](api-person-quarkus/) | Quarkus | 3.32.1 | JDK 25 (JEP 483 AOT) | 2 stages | [README](api-person-quarkus/README.md) |
-| [`api-person-go-gin`](api-person-go-gin/) | Go + Gin + GORM | 1.26 | Go 1.26 | 2 stages (scratch) | [README](api-person-go-gin/README.md) |
+| [`01-desafio/api-person-spring`](01-desafio/api-person-spring/) | Spring Boot | 4.0.3 | JDK 25 (JEP 483 AOT) | 4 stages | [README](01-desafio/api-person-spring/README.md) |
+| [`01-desafio/api-person-micronaut`](01-desafio/api-person-micronaut/) | Micronaut | 4.10.9 | JDK 25 (JEP 483 AOT) | 4 stages | [README](01-desafio/api-person-micronaut/README.md) |
+| [`01-desafio/api-person-quarkus`](01-desafio/api-person-quarkus/) | Quarkus | 3.32.1 | JDK 25 (JEP 483 AOT) | 2 stages | [README](01-desafio/api-person-quarkus/README.md) |
+| [`01-desafio/api-person-go-gin`](01-desafio/api-person-go-gin/) | Go + Gin + GORM | 1.26 | Go 1.26 | 2 stages (scratch) | [README](01-desafio/api-person-go-gin/README.md) |
 
 ---
 
@@ -218,19 +218,14 @@ git clone https://github.com/wesleyosantos91/polyglot-dojo.git
 cd polyglot-dojo
 
 # Build qualquer stack
-docker build -t api-person-spring ./api-person-spring
-docker build -t api-person-micronaut ./api-person-micronaut
-docker build -t api-person-quarkus ./api-person-quarkus
-docker build -t api-person-go-gin ./api-person-go-gin
+docker build -t api-person-spring ./01-desafio/api-person-spring
+docker build -t api-person-micronaut ./01-desafio/api-person-micronaut
+docker build -t api-person-quarkus ./01-desafio/api-person-quarkus
+docker build -t api-person-go-gin ./01-desafio/api-person-go-gin
 
-# Run
-docker run -d -p 8080:8080 \
-  -e DB_HOST=host.docker.internal \
-  -e DB_PORT=5432 \
-  -e DB_USER=postgres \
-  -e DB_PASSWORD=postgres \
-  -e DB_NAME=person_db \
-  api-person-spring
+# Subir stack local (Postgres + Observabilidade + API Spring)
+cd 01-desafio/infra/docker
+docker compose up -d --build api-person-spring
 
 # Test
 curl http://localhost:8080/api/persons
@@ -260,23 +255,16 @@ polyglot-dojo/
 │   ├── 01-crud-rest-api.md
 │   ├── ...
 │   └── 29-contract-testing.md
-├── api-person-spring/                 ← Spring Boot 4.0.3
-│   ├── Dockerfile                     (5 stages — JEP 483 + layered JAR)
-│   ├── pom.xml
-│   └── src/
-├── api-person-micronaut/              ← Micronaut 4.10.9
-│   ├── Dockerfile                     (4 stages — Micronaut AOT + JEP 483)
-│   ├── pom.xml
-│   └── src/
-├── api-person-quarkus/                ← Quarkus 3.32.1
-│   ├── Dockerfile                     (2 stages — Quarkus AOT + JEP 483)
-│   ├── pom.xml
-│   └── src/
-└── api-person-go-gin/                 ← Go 1.26 + Gin + GORM
-    ├── Dockerfile                     (2 stages — static binary + scratch)
-    ├── go.mod
-    ├── cmd/api/main.go
-    └── internal/
+└── 01-desafio/
+    ├── README.md                      ← visão consolidada do desafio 01
+    ├── api-person-spring/             ← Spring Boot 4.0.3
+    ├── api-person-micronaut/          ← Micronaut 4.10.9
+    ├── api-person-quarkus/            ← Quarkus 3.32.1
+    ├── api-person-go-gin/             ← Go 1.26 + Gin + GORM
+    └── infra/
+        ├── README.md                  ← documentação de infra local
+        ├── docker/                    ← docker-compose e configs de observabilidade
+        └── performance/               ← testes de carga (k6)
 ```
 
 ---

@@ -179,11 +179,25 @@ services:
           memory: 256m
           cpus: "0.5"
 
+  # -----------------------------------------------------------------------------
+  # Serviço api-person-spring
+  #
+  # Único Dockerfile suportado no projeto:
+  #   Dockerfile (padrão do contexto ../../api-person-spring)
+  #
+  # TRAINING_MODE:
+  #   - basic: treino rápido (onRefresh), gera app.aot sem executar collection HTTP.
+  #            Use quando quiser build mais rápido.
+  #   - full:  treino completo com training-collection.sh (cenários CRUD + erros + paginação),
+  #            melhora warmup para tráfego real. Build fica mais demorado.
+  #
+  # Padrão deste compose: full.
+  # -----------------------------------------------------------------------------
   api-person-spring:
     build:
-      context: ../api-person-spring
-      dockerfile: Dockerfile
-#    image: wesleyosantos91/api-person-spring:0.0.1-snapshot
+      context: ../../api-person-spring
+      args:
+        TRAINING_MODE: full
     container_name: api_person_spring
     restart: unless-stopped
     environment:
@@ -207,13 +221,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-#      otel-collector:
-#        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          memory: 768m
-          cpus: "1.0"
 
 volumes:
   postgres_data:

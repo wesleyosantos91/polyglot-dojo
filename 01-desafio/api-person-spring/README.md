@@ -4,6 +4,23 @@
 
 ---
 
+## 📦 Containerização Oficial
+
+Este projeto usa **apenas um** Dockerfile suportado:
+
+- `Dockerfile`
+
+Esse Dockerfile aplica:
+
+- build com `-Pnative` (Spring AOT)
+- extração de camadas (`jarmode=tools`)
+- treinamento AOT (`TRAINING_MODE=full`) com `docker/training-collection.sh`
+- geração de `app.aot` para startup/warmup melhores
+
+> Os Dockerfiles antigos foram removidos para reduzir manutenção e evitar divergência.
+
+---
+
 ## 📋 Visão Geral
 
 Microsserviço REST para gerenciamento de pessoas, construído com as melhores práticas de Spring Boot:
@@ -133,11 +150,10 @@ Durante o **stage train** do build:
 ### Build
 
 ```bash
-# Build normal (usa cache do Docker)
-docker build -t api-person-spring .
-
-# Build sem cache (recomendado após mudanças no Dockerfile)
-docker build --no-cache -t api-person-spring .
+# Build oficial (full training + app.aot)
+docker build --no-cache \
+  --build-arg TRAINING_MODE=full \
+  -t api-person-spring:prod-aot .
 
 # Ou use o script helper
 chmod +x build-docker.sh
@@ -149,20 +165,24 @@ chmod +x build-docker.sh
 ```bash
 docker run -d --name api-person-spring \
   -p 8080:8080 \
-  -e SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/person_db \
-  -e SPRING_DATASOURCE_USERNAME=postgres \
-  -e SPRING_DATASOURCE_PASSWORD=postgres \
-  -e SPRING_JPA_HIBERNATE_DDL_AUTO=update \
-  api-person-spring
+  -e APP_DATASOURCE_WRITER_URL=jdbc:postgresql://host.docker.internal:5432/dev \
+  -e APP_DATASOURCE_WRITER_USERNAME=postgres \
+  -e APP_DATASOURCE_WRITER_PASSWORD=postgres \
+  -e APP_DATASOURCE_READER_URL=jdbc:postgresql://host.docker.internal:5432/dev \
+  -e APP_DATASOURCE_READER_USERNAME=postgres \
+  -e APP_DATASOURCE_READER_PASSWORD=postgres \
+  api-person-spring:prod-aot
 ```
 
 ### Detalhes do Dockerfile
 
+Arquivo: `Dockerfile`
+
 | Stage | Base | Propósito |
 |---|---|---|
 | `build` | `maven:3.9.12-eclipse-temurin-25` | Compila o JAR com cache de dependências |
-| `extract` | `eclipse-temurin:25-jdk` | Extrai layered JAR (CDS/AOT friendly) |
-| `train` | `eclipse-temurin:25-jdk` | Inicia app + executa collection + gera AOT cache (`app.aot`) |
+| `extract` | `eclipse-temurin:25-jre` | Extrai layered JAR (CDS/AOT friendly) |
+| `train` | `eclipse-temurin:25-jre` | Inicia app + executa collection + gera AOT cache (`app.aot`) |
 | `runtime` | `eclipse-temurin:25-jre` | Imagem final mínima com ZGC + AOT cache |
 
 **Boas práticas aplicadas:**
@@ -203,6 +223,53 @@ Os testes de integração usam **Testcontainers** para provisionar automaticamen
 > ```
 > Sem essa configuração, `withReuse(true)` é ignorado e um novo container é criado a cada `mvn verify`.
 
+## 🔥 Testes de Carga (k6)
+
+Os cenários de carga ficam em `../infra/performance/k6/persons-workload.js` com 3 perfis:
+
+- `smoke`: validação rápida (1 VU por 30s)
+- `load`: carga sustentada para baseline de capacidade
+- `stress`: rampa de pressão para identificar limite
+
+### Pré-requisitos
+
+- API e banco em execução (recomendado: `../infra/docker/docker-compose.yml`)
+- Endpoint `BASE_URL` acessível
+
+### Rodando com k6 local
+
+```bash
+k6 run ../infra/performance/k6/persons-workload.js -e BASE_URL=http://localhost:8080 -e TEST_TYPE=smoke
+k6 run ../infra/performance/k6/persons-workload.js -e BASE_URL=http://localhost:8080 -e TEST_TYPE=load
+k6 run ../infra/performance/k6/persons-workload.js -e BASE_URL=http://localhost:8080 -e TEST_TYPE=stress
+```
+
+### Rodando com Docker (sem instalar k6)
+
+```bash
+docker run --rm -i \
+  -v "${PWD}/..:/work" \
+  -w /work \
+  grafana/k6 run infra/performance/k6/persons-workload.js \
+  -e BASE_URL=http://host.docker.internal:8080 \
+  -e TEST_TYPE=load
+```
+
+### Exportando resultados
+
+```bash
+k6 run ../infra/performance/k6/persons-workload.js \
+  -e BASE_URL=http://localhost:8080 \
+  -e TEST_TYPE=load \
+  --summary-export=../infra/performance/k6/results/load-summary.json
+```
+
+### Mix de tráfego usado
+
+- 60% `GET /api/persons` (lista paginada)
+- 30% `GET /api/persons/{id}`
+- 10% fluxo de escrita (`POST` + `PATCH` + `DELETE`)
+
 ---
 
 ## 🚀 Desenvolvimento Local
@@ -229,12 +296,15 @@ O `application.yml` define apenas o nome da aplicação. As demais configuraçõ
 
 | Variável | Padrão | Descrição |
 |---|---|---|
-| `SPRING_DATASOURCE_URL` | — | JDBC URL do PostgreSQL |
-| `SPRING_DATASOURCE_USERNAME` | — | Usuário do banco |
-| `SPRING_DATASOURCE_PASSWORD` | — | Senha do banco |
-| `SPRING_JPA_HIBERNATE_DDL_AUTO` | `none` | Estratégia DDL |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | — | Endpoint do coletor OTLP |
-| `OTEL_SERVICE_NAME` | `api-person` | Nome do serviço no tracing |
+| `APP_DATASOURCE_WRITER_URL` | `jdbc:postgresql://localhost:5432/dev?...` | JDBC URL de escrita |
+| `APP_DATASOURCE_WRITER_USERNAME` | `postgres` | Usuário de escrita |
+| `APP_DATASOURCE_WRITER_PASSWORD` | `postgres` | Senha de escrita |
+| `APP_DATASOURCE_READER_URL` | `jdbc:postgresql://localhost:5432/dev?...` | JDBC URL de leitura |
+| `APP_DATASOURCE_READER_USERNAME` | `postgres` | Usuário de leitura |
+| `APP_DATASOURCE_READER_PASSWORD` | `postgres` | Senha de leitura |
+| `MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT` | `http://localhost:4318/v1/traces` | Export de traces |
+| `MANAGEMENT_OPENTELEMETRY_LOGGING_EXPORT_OTLP_ENDPOINT` | `http://localhost:4318/v1/logs` | Export de logs |
+| `MANAGEMENT_OTLP_METRICS_EXPORT_URL` | `http://localhost:4318/v1/metrics` | Export de métricas |
 
 ---
 

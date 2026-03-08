@@ -3,16 +3,21 @@ set -e
 
 echo "🎯 Iniciando processo de AOT Training..."
 
+TRAINING_JAR="${TRAINING_JAR:-app.jar}"
+TRAINING_PROFILE="${TRAINING_PROFILE:-aot-training}"
+TRAINING_EXTRA_JAVA_OPTS="${TRAINING_EXTRA_JAVA_OPTS:-}"
+
 # Inicia a aplicação em background com AOT recording
 echo "🚀 Iniciando aplicação com AOT recording..."
-java -XX:AOTCacheOutput=app.aot \
+java ${TRAINING_EXTRA_JAVA_OPTS} \
+  -XX:AOTCacheOutput=app.aot \
   -XX:+UseZGC \
   -XX:MaxRAMPercentage=75.0 \
   -XX:InitialRAMPercentage=50.0 \
   -XX:+ExitOnOutOfMemoryError \
   -Duser.timezone=America/Sao_Paulo \
-  -Dspring.profiles.active=aot-training \
-  -jar app.jar > /tmp/app.log 2>&1 &
+  -Dspring.profiles.active=${TRAINING_PROFILE} \
+  -jar "${TRAINING_JAR}" > /tmp/app.log 2>&1 &
 
 APP_PID=$!
 echo "   ✓ Aplicação iniciada (PID: $APP_PID)"
