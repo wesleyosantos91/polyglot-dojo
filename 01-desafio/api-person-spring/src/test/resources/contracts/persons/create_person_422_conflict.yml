@@ -1,0 +1,22 @@
+description: "POST /api/persons — retorna 422 quando o email já está em uso"
+request:
+  method: POST
+  url: /api/persons
+  headers:
+    Content-Type: application/json
+  body:
+    name: "Outro Nome"
+    email: "existing@example.com"
+    birthDate: "1990-06-20"
+
+response:
+  status: 422
+  headers:
+    Content-Type: application/problem+json
+  body:
+    status: 422
+    error_code: "PERSON_EMAIL_ALREADY_EXISTS"
+  matchers:
+    body:
+      - path: $.error_code
+        type: by_equality

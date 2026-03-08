@@ -94,7 +94,7 @@ public class PersonEntity {
 
     @PrePersist
     public void prePersist() {
-        this.createdAt = OffsetDateTime.now(ZoneOffset.UTC);;
+        this.createdAt = OffsetDateTime.now(ZoneOffset.UTC);
     }
 
     @PreUpdate
@@ -123,7 +123,7 @@ public class PersonEntity {
         return getClass().getSimpleName() + "(" +
                 "id = " + id + ", " +
                 "name = " + name + ", " +
-                "email = " + email + ", " +
+                "email = ***" + ", " +
                 "birthDate = " + birthDate + ", " +
                 "createdAt = " + createdAt + ", " +
                 "updatedAt = " + updatedAt + ")";

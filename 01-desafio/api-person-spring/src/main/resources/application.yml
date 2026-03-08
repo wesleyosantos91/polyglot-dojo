@@ -72,13 +72,27 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
+    distribution:
+      # Histogramas para SLOs de latência (p50, p95, p99) — 4 Golden Signals: Latência
+      percentiles-histogram:
+        http.server.request.duration: true
+        hikari.connections: true
+      percentiles:
+        http.server.request.duration: [0.5, 0.95, 0.99]
+      # Buckets alinhados a SLOs: 50ms, 100ms, 200ms, 500ms, 1s, 2s
+      slo:
+        http.server.request.duration: 50ms, 100ms, 200ms, 500ms, 1s, 2s
+      minimum-expected-value:
+        http.server.request.duration: 1ms
+      maximum-expected-value:
+        http.server.request.duration: 10s
   tracing:
     sampling:
       probability: 1.0
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,metrics
   opentelemetry:
     tracing:
       export:

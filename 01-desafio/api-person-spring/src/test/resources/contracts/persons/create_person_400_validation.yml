@@ -1,0 +1,28 @@
+description: "POST /api/persons — retorna 400 quando campos obrigatórios são inválidos"
+request:
+  method: POST
+  url: /api/persons
+  headers:
+    Content-Type: application/json
+  body:
+    name: ""
+    email: "nao-e-email"
+    birthDate: "2099-12-31"
+
+response:
+  status: 400
+  headers:
+    Content-Type: application/problem+json
+  body:
+    status: 400
+    error_code: "VALIDATION_ERROR"
+    violations:
+      - field: $(regex ".+")
+        message: $(regex ".+")
+  matchers:
+    body:
+      - path: $.error_code
+        type: by_equality
+      - path: $.violations
+        type: by_type
+        minOccurrence: 1

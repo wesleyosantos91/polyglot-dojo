@@ -1,0 +1,94 @@
+spring:
+  application:
+    name: api-person-spring
+  threads:
+    virtual:
+      enabled: true
+
+  main:
+    keep-alive: false
+
+  # H2 in-memory database configuration for unit tests (Requirement 8.4)
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: create-drop
+    # Enable SQL logging for debugging (Requirement 8.5)
+    show-sql: true
+    properties:
+      hibernate:
+        '[format_sql]': true
+        dialect: org.hibernate.dialect.H2Dialect
+
+  # Disable H2 console in tests
+  h2:
+    console:
+      enabled: false
+
+  mvc:
+    problemdetails:
+      enabled: true
+
+  data:
+    web:
+      pageable:
+        default-page-size: 10
+        max-page-size: 100
+
+  # Ensure test database is not replaced by embedded database
+  test:
+    database:
+      replace: none
+
+# Disable custom datasources during tests (Requirement 8.2)
+app:
+  datasource:
+    writer:
+      enabled: false
+    reader:
+      enabled: false
+  db:
+    concurrency:
+      write-limit: 1
+      read-limit: 1
+  logging:
+    adaptive:
+      slow-request-threshold-ms: 1000
+      include-headers-on-error: true
+      include-querystring-on-warn: false
+      max-payload-log-bytes: 1024
+      mask-headers: [authorization, cookie, set-cookie]
+      mask-json-fields: [password, token, access_token, refresh_token, cpf, email]
+
+# Disable unnecessary management endpoints during tests (Requirement 8.2)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  health:
+    defaults:
+      enabled: true
+  tracing:
+    export:
+      enabled: false
+
+# Configure appropriate logging levels for testing (Requirement 8.3)
+logging:
+  level:
+    root: WARN
+    '[io.github.wesleyosantos91]': DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.test: INFO
+    org.springframework.boot.test: INFO
+    org.testcontainers: INFO
+  pattern:
+    correlation: "[%X{correlation_id:-},%X{traceId:-},%X{spanId:-}] "
+  include-application-name: false

@@ -1,0 +1,24 @@
+description: "GET /api/persons/{id} — retorna a pessoa quando existe"
+request:
+  method: GET
+  url: /api/persons/00000000-0000-0000-0000-000000000001
+  headers:
+    Accept: application/json
+
+response:
+  status: 200
+  headers:
+    Content-Type: application/json
+  body:
+    id: "00000000-0000-0000-0000-000000000001"
+    name: $(regex ".+")
+    email: $(regex ".+@.+")
+    birthDate: $(regex "\\d{4}-\\d{2}-\\d{2}")
+    createdAt: $(regex ".+")
+  matchers:
+    body:
+      - path: $.id
+        type: by_equality
+      - path: $.name
+        type: by_regex
+        value: ".+"

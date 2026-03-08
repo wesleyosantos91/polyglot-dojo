@@ -1,0 +1,76 @@
+spring:
+  jpa:
+    hibernate:
+      # Permite que o Hibernate crie/destrua o schema nos testes.
+      # Em produção o application.yml mantém 'none' (Flyway/DDL manual).
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  # Desabilita o banner no output dos testes
+  main:
+    banner-mode: off
+
+# ─── DataSource ────────────────────────────────────────────────────────────────
+# O AbstractIT injeta as URLs do PostgreSQL container via @DynamicPropertySource.
+# As propriedades abaixo sobrescrevem os defaults de produção do application.yml
+# para que Hikari não tente conectar no localhost:5432 durante os testes.
+app:
+  datasource:
+    writer:
+      hikari:
+        pool-name: it-writer-pool
+        maximum-pool-size: 3
+        minimum-idle: 1
+        connection-timeout: 3000
+        validation-timeout: 1000
+    reader:
+      hikari:
+        pool-name: it-reader-pool
+        maximum-pool-size: 3
+        minimum-idle: 1
+        connection-timeout: 3000
+        validation-timeout: 1000
+
+  # Limites de concorrência relaxados para evitar rejeições nos testes
+  db:
+    concurrency:
+      write-limit: 10
+      read-limit: 10
+
+# ─── Observabilidade / Actuator ────────────────────────────────────────────────
+# Exportação OTLP desabilitada nos testes — sem overhead de observabilidade.
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/traces
+    logging:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/logs
+  otlp:
+    metrics:
+      export:
+        enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+# ─── Logging ───────────────────────────────────────────────────────────────────
+logging:
+  level:
+    root: INFO
+    io.github.wesleyosantos91: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+  structured:
+    format:
+      console: off   # Desativa JSON no console — saída legível nos testes

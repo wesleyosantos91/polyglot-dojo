@@ -1,0 +1,41 @@
+description: "POST /api/persons — cria uma nova pessoa e retorna 201 com Location"
+request:
+  method: POST
+  url: /api/persons
+  headers:
+    Content-Type: application/json
+  body:
+    name: "Wesley Santos"
+    email: "contract@example.com"
+    birthDate: "1991-01-15"
+  matchers:
+    body:
+      - path: $.name
+        type: by_regex
+        value: ".+"
+      - path: $.email
+        type: by_regex
+        value: ".+@.+"
+      - path: $.birthDate
+        type: by_date
+
+response:
+  status: 201
+  headers:
+    Content-Type: application/json
+    Location: $(regex "http://.*")
+  body:
+    id: $(regex "[0-9a-f-]{36}")
+    name: "Wesley Santos"
+    email: "contract@example.com"
+    birthDate: "1991-01-15"
+    createdAt: $(regex ".+")
+    updatedAt: null
+  matchers:
+    body:
+      - path: $.id
+        type: by_regex
+        value: "[0-9a-f-]{36}"
+      - path: $.createdAt
+        type: by_regex
+        value: ".+"

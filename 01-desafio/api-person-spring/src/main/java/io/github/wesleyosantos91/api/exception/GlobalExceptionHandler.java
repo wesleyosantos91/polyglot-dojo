@@ -61,11 +61,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ProblemDetail handleNotFound(ResourceNotFoundException ex, HttpServletRequest request) {
+        // INFO sem stack trace — 404 é erro esperado de cliente, não requer investigação
         log.atInfo()
                 .setMessage("resource_not_found")
-                .setCause(ex)
                 .addKeyValue("error_code", "RESOURCE_NOT_FOUND")
                 .addKeyValue("path", request.getRequestURI())
+                .addKeyValue("detail", ex.getMessage())
                 .log();
 
         return problem(
@@ -80,11 +81,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public ProblemDetail handleBusiness(BusinessException ex, HttpServletRequest request) {
+        // WARN sem stack trace — violação de regra de negócio é esperada, não um bug
         log.atWarn()
                 .setMessage("business_error")
-                .setCause(ex)
                 .addKeyValue("error_code", ex.getErrorCode())
                 .addKeyValue("path", request.getRequestURI())
+                .addKeyValue("detail", ex.getMessage())
                 .log();
 
         return problem(
@@ -264,9 +266,7 @@ public class GlobalExceptionHandler {
         pd.setTitle(title);
         pd.setType(URI.create(typeUri));
 
-        if (request != null) {
-            pd.setInstance(URI.create(request.getRequestURI()));
-        }
+        pd.setInstance(URI.create(request.getRequestURI()));
 
         pd.setProperty("timestamp", OffsetDateTime.now().toString());
         pd.setProperty("error_code", errorCode);

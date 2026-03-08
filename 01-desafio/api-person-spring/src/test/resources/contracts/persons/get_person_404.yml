@@ -1,0 +1,20 @@
+description: "GET /api/persons/{id} — retorna 404 quando a pessoa não existe"
+request:
+  method: GET
+  url: /api/persons/00000000-0000-0000-0000-000000000099
+  headers:
+    Accept: application/json
+
+response:
+  status: 404
+  headers:
+    Content-Type: application/problem+json
+  body:
+    status: 404
+    error_code: "RESOURCE_NOT_FOUND"
+  matchers:
+    body:
+      - path: $.error_code
+        type: by_equality
+      - path: $.status
+        type: by_equality

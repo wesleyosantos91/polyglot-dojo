@@ -54,14 +54,12 @@ public class CorrelationMdcFilter extends OncePerRequestFilter {
                 String spanId = currentSpan.context().spanId();
 
                 if (traceId != null) {
-                    MDC.put("trace_id", traceId);
                     MDC.put("traceId", traceId);
                     if (incomingCorrelationId == null || incomingCorrelationId.isBlank()) {
                         MDC.put("correlation_id", traceId);
                     }
                 }
                 if (spanId != null) {
-                    MDC.put("span_id", spanId);
                     MDC.put("spanId", spanId);
                 }
             }

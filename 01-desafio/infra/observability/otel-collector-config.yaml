@@ -12,6 +12,8 @@ processors:
     limit_mib: 256
     spike_limit_mib: 64
   batch:
+    timeout: 5s
+    send_batch_size: 512
 
 exporters:
   debug:
@@ -23,9 +25,11 @@ exporters:
       insecure: true
 
   otlphttp/prometheus:
-    endpoint: http://prometheus:9090/api/v1/otlp/v1/metrics
-    tls:
-      insecure: true
+    endpoint: http://prometheus:9090/api/v1/otlp
+
+  # Exporta logs para Loki via OTLP HTTP
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
 
 extensions:
   health_check:
@@ -54,7 +58,8 @@ service:
       processors: [memory_limiter, batch]
       exporters: [debug, otlphttp/prometheus]
 
+    # Logs agora roteados para Loki — antes só iam para debug
     logs:
-     receivers: [otlp]
-     processors: [memory_limiter, batch]
-     exporters: [debug]
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [debug, otlphttp/loki]

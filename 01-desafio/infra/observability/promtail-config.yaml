@@ -31,3 +31,29 @@ scrape_configs:
 
     pipeline_stages:
       - docker: {}
+      - json:
+          expressions:
+            level: level
+            trace_id: traceId
+            span_id: spanId
+            correlation_id: correlation_id
+            logger: logger_name
+            http_status: http_status
+            http_method: http_method
+            http_path: http_path
+            outcome: outcome
+            latency_ms: latency_ms
+            error_code: error_code
+      - labels:
+          level:
+          trace_id:
+          correlation_id:
+      - structured_metadata:
+          span_id:
+          http_status:
+          http_method:
+          http_path:
+          outcome:
+          latency_ms:
+          error_code:
+          logger:

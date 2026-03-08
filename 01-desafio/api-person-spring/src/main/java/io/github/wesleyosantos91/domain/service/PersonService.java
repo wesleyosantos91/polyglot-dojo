@@ -8,7 +8,6 @@ import io.github.wesleyosantos91.domain.entity.PersonEntity;
 import io.github.wesleyosantos91.domain.exception.ConflictException;
 import io.github.wesleyosantos91.domain.exception.ResourceNotFoundException;
 import io.github.wesleyosantos91.domain.repository.PersonRepository;
-import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -102,8 +101,6 @@ public class PersonService {
 
         person.setName(normalizeName(person.getName()));
         person.setEmail(normalizedEmail);
-        person.setCreatedAt(OffsetDateTime.now());
-        person.setUpdatedAt(null);
 
         return personRepository.save(person);
     }
@@ -130,7 +127,6 @@ public class PersonService {
         current.setName(normalizeName(payload.getName()));
         current.setEmail(normalizedEmail);
         current.setBirthDate(payload.getBirthDate());
-        current.setUpdatedAt(OffsetDateTime.now());
 
         return personRepository.save(current);
     }
@@ -164,8 +160,6 @@ public class PersonService {
             current.setEmail(normalizeEmail(current.getEmail()));
         }
 
-        current.setUpdatedAt(OffsetDateTime.now());
-
         return personRepository.save(current);
     }
 
@@ -175,10 +169,11 @@ public class PersonService {
             policy = ConcurrencyLimit.ThrottlePolicy.REJECT
     )
     public void deleteById(UUID id) {
-        PersonEntity current = personRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Person", id));
+        if (!personRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Person", id);
+        }
 
-        personRepository.delete(current);
+        personRepository.deleteById(id);
     }
 
     private String normalizeEmail(String email) {

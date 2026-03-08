@@ -18,11 +18,13 @@ datasources:
     jsonData:
       tracesToLogsV2:
         datasourceUid: loki
+        customQuery: true
+        query: '{container="${__span.tags["service.name"]}"} | trace_id="${__trace.traceId}"'
         tags:
           - key: service.name
-            value: service_name
-        spanStartTimeShift: "1h"
-        spanEndTimeShift: "1h"
+            value: container
+        spanStartTimeShift: "-1m"
+        spanEndTimeShift: "1m"
         filterByTraceID: true
         filterBySpanID: false
 
@@ -32,3 +34,10 @@ datasources:
     access: proxy
     url: http://loki:3100
     editable: true
+    jsonData:
+      derivedFields:
+        - name: TraceID
+          matcherRegex: '"traceId":"([a-f0-9]+)"'
+          url: '$${__value.raw}'
+          datasourceUid: jaeger
+          urlDisplayLabel: "Open Trace in Jaeger"

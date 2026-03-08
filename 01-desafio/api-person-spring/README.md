@@ -194,8 +194,14 @@ mvn verify -DskipITs
 ### Testcontainers
 
 Os testes de integração usam **Testcontainers** para provisionar automaticamente:
-- PostgreSQL container
-- Grafana container (observabilidade)
+- PostgreSQL container (`postgres:18.3`)
+
+> **Pré-requisito para reuso de containers entre runs:**
+> Adicione ao arquivo `~/.testcontainers.properties`:
+> ```properties
+> testcontainers.reuse.enable=true
+> ```
+> Sem essa configuração, `withReuse(true)` é ignorado e um novo container é criado a cada `mvn verify`.
 
 ---
 
