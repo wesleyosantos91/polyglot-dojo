@@ -74,7 +74,21 @@ src/main/java/io/github/wesleyosantos91/
 | `GET` | `/api/persons/{id}` | Busca por ID | `200 OK` / `404 Not Found` |
 | `POST` | `/api/persons` | Cria nova person | `201 Created` |
 | `PUT` | `/api/persons/{id}` | Atualiza person | `200 OK` / `404 Not Found` |
+| `PATCH` | `/api/persons/{id}` | Atualiza parcialmente person | `200 OK` / `404 Not Found` |
 | `DELETE` | `/api/persons/{id}` | Remove person | `204 No Content` |
+
+### OpenAPI (springdoc)
+
+- OpenAPI JSON: `GET /v3/api-docs`
+- Swagger UI: `GET /swagger-ui.html`
+
+> Em produção, prefira `APP_SWAGGER_UI_ENABLED=false` para não expor a UI publicamente.
+
+### Probes (Kubernetes readiness/startup/liveness)
+
+- Liveness: `GET /actuator/health/liveness` e `GET /livez`
+- Readiness: `GET /actuator/health/readiness` e `GET /readyz`
+- Startup gate: `GET /actuator/health/startup` e `GET /startupz`
 
 ### Request Body (POST / PUT)
 
@@ -292,7 +306,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 
 ### Configuração
 
-O `application.yml` define apenas o nome da aplicação. As demais configurações são injetadas via variáveis de ambiente:
+As principais configurações são injetadas via variáveis de ambiente:
 
 | Variável | Padrão | Descrição |
 |---|---|---|
@@ -305,6 +319,17 @@ O `application.yml` define apenas o nome da aplicação. As demais configuraçõ
 | `MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT` | `http://localhost:4318/v1/traces` | Export de traces |
 | `MANAGEMENT_OPENTELEMETRY_LOGGING_EXPORT_OTLP_ENDPOINT` | `http://localhost:4318/v1/logs` | Export de logs |
 | `MANAGEMENT_OTLP_METRICS_EXPORT_URL` | `http://localhost:4318/v1/metrics` | Export de métricas |
+| `APP_OPENAPI_ENABLED` | `true` | Habilita endpoint OpenAPI `/v3/api-docs` |
+| `APP_SWAGGER_UI_ENABLED` | `true` | Habilita Swagger UI em `/swagger-ui.html` |
+| `APP_AVAILABILITY_GATES_ENABLED` | `true` | Habilita startup/readiness gate (checagem de writer/reader DB no boot) |
+
+### Migração de Banco (Flyway)
+
+- As migrações rodam automaticamente no startup da aplicação.
+- O projeto usa scripts por banco com `spring.flyway.locations=classpath:db/migration/{vendor}`.
+- PostgreSQL: `src/main/resources/db/migration/postgresql`
+- H2: `src/main/resources/db/migration/h2`
+- `baseline-on-migrate=true` está habilitado para suportar ambientes já existentes sem `flyway_schema_history`.
 
 ### Resiliência (Retry)
 
@@ -420,6 +445,8 @@ fields @timestamp, correlation_id, request_id, trace_id, message
 | `spring-boot-starter-webmvc` | REST API com Spring MVC |
 | `spring-boot-starter-data-jpa` | JPA + Hibernate + Spring Data |
 | `spring-boot-starter-opentelemetry` | Tracing distribuído (OTLP) |
+| `springdoc-openapi-starter-webmvc-ui` | OpenAPI 3.1 + Swagger UI |
+| `flyway-core` + `flyway-database-postgresql` | Migração versionada de schema (PostgreSQL e H2) |
 | `postgresql` | Driver JDBC PostgreSQL |
 | `h2` | Banco em memória para testes/dev |
 | `spring-boot-testcontainers` | Integração JUnit 5 + Testcontainers |

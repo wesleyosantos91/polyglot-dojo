@@ -23,15 +23,18 @@ response:
   status: 201
   headers:
     Content-Type: application/json
-    Location: $(regex "http://.*")
+    Location: "http://localhost/api/persons/00000000-0000-0000-0000-000000000001"
   body:
-    id: $(regex "[0-9a-f-]{36}")
+    id: "00000000-0000-0000-0000-000000000001"
     name: "Wesley Santos"
     email: "contract@example.com"
     birthDate: "1991-01-15"
-    createdAt: $(regex ".+")
+    createdAt: "2026-01-01T00:00:00Z"
     updatedAt: null
   matchers:
+    headers:
+      - key: Location
+        regex: "http://.*"
     body:
       - path: $.id
         type: by_regex

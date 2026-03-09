@@ -80,7 +80,6 @@ RUN set -eux; \
         APP_DATASOURCE_READER_URL="${TRAINING_READER_URL}" \
         APP_DATASOURCE_READER_USERNAME="${TRAINING_READER_USERNAME}" \
         APP_DATASOURCE_READER_PASSWORD="${TRAINING_READER_PASSWORD}" \
-        SPRING_JPA_HIBERNATE_DDL_AUTO=create-drop \
         TRAINING_JAR=application.jar \
         TRAINING_PROFILE=aot-training \
         TRAINING_EXTRA_JAVA_OPTS="-Dspring.aot.enabled=true" \
@@ -114,7 +113,7 @@ USER appuser
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD wget --quiet --tries=1 --spider http://localhost:8080/actuator/health || exit 1
+  CMD wget --quiet --tries=1 --spider http://localhost:8080/livez || exit 1
 
 # AOTMode=auto keeps startup resilient if cache is incompatible with runtime.
 ENTRYPOINT ["java", \

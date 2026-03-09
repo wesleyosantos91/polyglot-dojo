@@ -1,6 +1,7 @@
 package io.github.wesleyosantos91.api.exception;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -9,6 +10,7 @@ import io.github.wesleyosantos91.domain.exception.ResourceNotFoundException;
 import io.github.wesleyosantos91.infrastructure.metrics.PersonMetrics;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
+import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
@@ -49,8 +51,8 @@ class GlobalExceptionHandlerTest {
 
     @BeforeEach
     void setup() {
-        when(request.getRequestURI()).thenReturn("/api/test");
-        when(tracerProvider.getIfAvailable()).thenReturn(null);
+        lenient().when(request.getRequestURI()).thenReturn("/api/test");
+        lenient().when(tracerProvider.getIfAvailable()).thenReturn(null);
     }
 
     @Test
@@ -306,6 +308,29 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    @DisplayName("handleValidation — supports null field name in violation mapping")
+    @SuppressWarnings("unchecked")
+    void handleValidation_supportsNullFieldName() {
+        var bindingResult = mock(BindingResult.class);
+        var fieldError = mock(FieldError.class);
+        when(fieldError.getField()).thenReturn(null);
+        when(fieldError.getCode()).thenReturn("NotNull");
+        when(fieldError.getDefaultMessage()).thenReturn("must not be null");
+        when(fieldError.getRejectedValue()).thenReturn("value");
+        when(bindingResult.getFieldErrors()).thenReturn(List.of(fieldError));
+
+        var ex = mock(MethodArgumentNotValidException.class);
+        when(ex.getBindingResult()).thenReturn(bindingResult);
+
+        var pd = handler.handleValidation(ex, request);
+
+        var violations = (List<Map<String, Object>>) pd.getProperties().get("violations");
+        assertThat(violations).hasSize(1);
+        assertThat(violations.get(0)).containsEntry("field", null);
+        assertThat(violations.get(0)).containsKey("rejected_value");
+    }
+
+    @Test
     @DisplayName("handleConstraintViolation — maps each violation with field and message")
     @SuppressWarnings({"unchecked", "rawtypes"})
     void handleConstraintViolation_mapsViolationDetails() {
@@ -338,5 +363,50 @@ class GlobalExceptionHandlerTest {
         var pd = handler.handleNotFound(new ResourceNotFoundException("Person", "id"), request);
 
         assertThat(pd.getProperties()).doesNotContainKey("trace_id");
+    }
+
+    @Test
+    @DisplayName("handleDataIntegrity — omits sql_state when SQL state is blank")
+    void handleDataIntegrity_omitsBlankSqlState() {
+        var ex = new DataIntegrityViolationException(
+                "constraint violation",
+                new SQLException("duplicate key", "   ", 1062)
+        );
+
+        var pd = handler.handleDataIntegrity(ex, request);
+
+        assertThat(pd.getStatus()).isEqualTo(409);
+        assertThat(pd.getProperties()).doesNotContainKey("sql_state");
+        assertThat(pd.getProperties().get("db_error_code")).isEqualTo(1062);
+    }
+
+    @Test
+    @DisplayName("handleDataIntegrity — omits sql details when SQLException is deeper than search limit")
+    void handleDataIntegrity_ignoresSqlExceptionBeyondDepthLimit() {
+        Throwable deepCause = new SQLException("deep sql error", "99999", 1);
+        for (int i = 0; i < 20; i++) {
+            deepCause = new RuntimeException("layer-" + i, deepCause);
+        }
+
+        var ex = new DataIntegrityViolationException("constraint violation", deepCause);
+        var pd = handler.handleDataIntegrity(ex, request);
+
+        assertThat(pd.getStatus()).isEqualTo(409);
+        assertThat(pd.getProperties()).doesNotContainKey("sql_state");
+        assertThat(pd.getProperties()).doesNotContainKey("db_error_code");
+    }
+
+    @Test
+    @DisplayName("sanitizeDbMessage — truncates long database messages")
+    void sanitizeDbMessage_truncatesLongMessage() throws Exception {
+        Method sanitizeDbMessage = GlobalExceptionHandler.class
+                .getDeclaredMethod("sanitizeDbMessage", String.class);
+        sanitizeDbMessage.setAccessible(true);
+
+        String longMessage = "x".repeat(600);
+        String result = (String) sanitizeDbMessage.invoke(handler, longMessage);
+
+        assertThat(result).endsWith("...(truncated)");
+        assertThat(result.length()).isEqualTo(526);
     }
 }

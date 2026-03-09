@@ -47,10 +47,15 @@ Removendo volumes:
 docker compose down -v
 ```
 
+> Se você já tinha subido o Postgres com setup antigo, execute `docker compose down -v` antes de subir novamente para garantir um volume limpo.
+
 ## Endpoints
 
 - API: `http://localhost:8080`
 - Health: `http://localhost:8080/actuator/health`
+- Liveness: `http://localhost:8080/livez`
+- Readiness: `http://localhost:8080/readyz`
+- Startup: `http://localhost:8080/startupz`
 - Grafana: `http://localhost:3000`
 - Prometheus: `http://localhost:9090`
 - Jaeger UI: `http://localhost:16686`
@@ -59,9 +64,17 @@ docker compose down -v
 ## Observações
 
 - O serviço `api-person-spring` depende de `postgres` saudável.
+- O schema do banco é gerenciado pela API via Flyway (não há mais `init.sql` no Postgres).
 - A configuração de observabilidade está em `./observability/`.
 - Dashboards e datasources do Grafana estão em `./grafana/`.
 - Regras de alerta do Prometheus estão em `./observability/alert-rules.yml`.
+
+## Dashboards Grafana
+
+Dashboards disponíveis em `./grafana/dashboards`:
+
+- `api-person-spring-golden-signals.json`: Golden Signals com foco no serviço atual (`api-person-spring`).
+- `api-person-spring-troubleshooting-rca.json`: troubleshooting e RCA (5xx, retries, erros de negócio e saturação) do serviço atual.
 
 ## Alertas ativos (Prometheus)
 

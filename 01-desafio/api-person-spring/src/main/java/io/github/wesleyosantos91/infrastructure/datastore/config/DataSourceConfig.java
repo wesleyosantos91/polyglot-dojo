@@ -9,6 +9,7 @@ import javax.sql.DataSource;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.flyway.autoconfigure.FlywayDataSource;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,6 +27,7 @@ public class DataSourceConfig {
     }
 
     @Bean(name = "writerDataSource")
+    @FlywayDataSource
     @ConfigurationProperties("app.datasource.writer.hikari")
     public HikariDataSource writerDataSource(
             @Qualifier("writerDataSourceProperties") DataSourceProperties properties) {

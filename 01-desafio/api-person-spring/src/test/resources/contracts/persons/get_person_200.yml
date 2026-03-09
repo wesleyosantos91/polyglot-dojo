@@ -11,14 +11,23 @@ response:
     Content-Type: application/json
   body:
     id: "00000000-0000-0000-0000-000000000001"
-    name: $(regex ".+")
-    email: $(regex ".+@.+")
-    birthDate: $(regex "\\d{4}-\\d{2}-\\d{2}")
-    createdAt: $(regex ".+")
+    name: "Contract Person"
+    email: "contract.known@example.com"
+    birthDate: "1991-01-15"
+    createdAt: "2026-01-01T00:00:00Z"
   matchers:
     body:
       - path: $.id
         type: by_equality
       - path: $.name
+        type: by_regex
+        value: ".+"
+      - path: $.email
+        type: by_regex
+        value: ".+@.+"
+      - path: $.birthDate
+        type: by_regex
+        value: "\\d{4}-\\d{2}-\\d{2}"
+      - path: $.createdAt
         type: by_regex
         value: ".+"

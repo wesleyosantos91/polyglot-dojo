@@ -1,9 +1,8 @@
 spring:
   jpa:
     hibernate:
-      # Permite que o Hibernate crie/destrua o schema nos testes.
-      # Em produção o application.yml mantém 'none' (Flyway/DDL manual).
-      ddl-auto: create-drop
+      # Nos testes de integração, schema é versionado por Flyway.
+      ddl-auto: none
     show-sql: true
     properties:
       hibernate:
@@ -73,4 +72,5 @@ logging:
     org.hibernate.orm.jdbc.bind: TRACE
   structured:
     format:
-      console: off   # Desativa JSON no console — saída legível nos testes
+      # `off` here is parsed as boolean false by YAML and breaks StructuredLogEncoder.
+      console: logstash
