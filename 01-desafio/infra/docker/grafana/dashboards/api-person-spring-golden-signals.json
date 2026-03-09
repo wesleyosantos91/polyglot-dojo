@@ -1,7 +1,7 @@
 {
   "uid": "api-person-spring-golden-signals",
   "title": "API Person Spring — Golden Signals",
-  "description": "Golden Signals e Resilience para api-person-spring",
+  "description": "Golden Signals, JVM Runtime e Business Metrics para api-person-spring",
   "tags": [
     "api-person-spring",
     "spring-boot",
@@ -11,7 +11,7 @@
   ],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "15s",
   "time": {
     "from": "now-1h",
@@ -78,43 +78,60 @@
       "id": 1,
       "type": "text",
       "title": "",
-      "gridPos": {
-        "h": 2,
-        "w": 24,
-        "x": 0,
-        "y": 0
-      },
+      "gridPos": { "h": 2, "w": 24, "x": 0, "y": 0 },
       "options": {
         "mode": "html",
-        "content": "<h1 style=\"background-color:#f39c12;padding:8px;border-radius:4px;\"><center><b><font size=\"5\" color=\"#181b1f\">API Person Spring — Observability</font></b></center></h1>"
+        "content": "<h1 style=\"background-color:#f39c12;padding:8px;border-radius:4px;\"><center><b><font size=\"5\" color=\"#181b1f\">API Person Spring — Observability Dashboard</font></b></center></h1>"
       }
     },
+
     {
-      "id": 2,
+      "id": 100,
       "type": "row",
-      "title": "Golden Signals",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 2
-      },
+      "title": "📊 Latency",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 2 },
       "collapsed": false
     },
     {
-      "id": 3,
+      "id": 101,
+      "type": "stat",
+      "title": "Total Requests (window)",
+      "description": "Total de requisições no período selecionado",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 3 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sum(increase(http_server_request_duration_seconds_count{service_name=\"$service\"}[$__range]))",
+          "instant": true,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 102,
       "type": "stat",
       "title": "Throughput (req/s)",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 0,
-        "y": 3
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "description": "Taxa de requisições por segundo",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 3 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\"}[$__rate_interval]))",
@@ -128,28 +145,15 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 50
-              },
-              {
-                "color": "red",
-                "value": 200
-              }
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 50 },
+              { "color": "red", "value": 200 }
             ]
           }
         }
       },
       "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
+        "reduceOptions": { "calcs": ["lastNotNull"] },
         "colorMode": "background",
         "graphMode": "area",
         "justifyMode": "auto",
@@ -157,19 +161,80 @@
       }
     },
     {
-      "id": 4,
+      "id": 103,
+      "type": "stat",
+      "title": "Latency p50 (ms)",
+      "gridPos": { "h": 4, "w": 3, "x": 12, "y": 3 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(http_server_request_duration_seconds_bucket{service_name=\"$service\"}[$__rate_interval])) by (le)) * 1000",
+          "instant": true,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 100 },
+              { "color": "red", "value": 500 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 104,
+      "type": "stat",
+      "title": "Latency p90 (ms)",
+      "gridPos": { "h": 4, "w": 3, "x": 15, "y": 3 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(http_server_request_duration_seconds_bucket{service_name=\"$service\"}[$__rate_interval])) by (le)) * 1000",
+          "instant": true,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 150 },
+              { "color": "orange", "value": 300 },
+              { "color": "red", "value": 800 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 105,
       "type": "stat",
       "title": "Latency p95 (ms)",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 6,
-        "y": 3
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "gridPos": { "h": 4, "w": 3, "x": 18, "y": 3 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{service_name=\"$service\"}[$__rate_interval])) by (le)) * 1000",
@@ -183,32 +248,16 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 200
-              },
-              {
-                "color": "orange",
-                "value": 500
-              },
-              {
-                "color": "red",
-                "value": 1000
-              }
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 200 },
+              { "color": "orange", "value": 500 },
+              { "color": "red", "value": 1000 }
             ]
           }
         }
       },
       "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
+        "reduceOptions": { "calcs": ["lastNotNull"] },
         "colorMode": "background",
         "graphMode": "none",
         "justifyMode": "auto",
@@ -216,189 +265,54 @@
       }
     },
     {
-      "id": 5,
+      "id": 106,
       "type": "stat",
-      "title": "5xx Error Rate (%)",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 12,
-        "y": 3
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "title": "Latency p99 (ms)",
+      "gridPos": { "h": 4, "w": 3, "x": 21, "y": 3 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
-          "expr": "100 * sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\", http_response_status_code=~\"5..\"}[$__rate_interval])) / clamp_min(sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\"}[$__rate_interval])), 0.001)",
+          "expr": "histogram_quantile(0.99, sum(rate(http_server_request_duration_seconds_bucket{service_name=\"$service\"}[$__rate_interval])) by (le)) * 1000",
           "instant": true,
           "legendFormat": ""
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "percent",
+          "unit": "ms",
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 1
-              },
-              {
-                "color": "orange",
-                "value": 5
-              },
-              {
-                "color": "red",
-                "value": 10
-              }
-            ]
-          },
-          "noValue": "0"
-        }
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "auto"
-      }
-    },
-    {
-      "id": 6,
-      "type": "stat",
-      "title": "DB Pool Saturation (%)",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 18,
-        "y": 3
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "targets": [
-        {
-          "expr": "100 * sum(hikaricp_connections_active{service_name=\"$service\"}) / clamp_min(sum(hikaricp_connections_max{service_name=\"$service\"}),1)",
-          "instant": true,
-          "legendFormat": ""
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 60
-              },
-              {
-                "color": "orange",
-                "value": 80
-              },
-              {
-                "color": "red",
-                "value": 95
-              }
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 300 },
+              { "color": "orange", "value": 700 },
+              { "color": "red", "value": 1500 }
             ]
           }
         }
       },
       "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
+        "reduceOptions": { "calcs": ["lastNotNull"] },
         "colorMode": "background",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "textMode": "auto"
       }
     },
     {
-      "id": 7,
+      "id": 107,
       "type": "timeseries",
-      "title": "Request Rate by Endpoint",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 7
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "targets": [
-        {
-          "expr": "sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\"}[$__rate_interval])) by (http_request_method, url_template)",
-          "legendFormat": "{{http_request_method}} {{url_template}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 8
-          }
-        }
-      },
-      "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max",
-            "lastNotNull"
-          ]
-        }
-      }
-    },
-    {
-      "id": 8,
-      "type": "timeseries",
-      "title": "Latency Percentiles — p50 / p95 / p99",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 7
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "title": "Latency Percentiles — p50 / p90 / p95 / p99",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 7 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "histogram_quantile(0.50, sum(rate(http_server_request_duration_seconds_bucket{service_name=\"$service\"}[$__rate_interval])) by (le)) * 1000",
           "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(http_server_request_duration_seconds_bucket{service_name=\"$service\"}[$__rate_interval])) by (le)) * 1000",
+          "legendFormat": "p90"
         },
         {
           "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{service_name=\"$service\"}[$__rate_interval])) by (le)) * 1000",
@@ -412,42 +326,387 @@
       "fieldConfig": {
         "defaults": {
           "unit": "ms",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 5
-          }
+          "custom": { "lineWidth": 2, "fillOpacity": 5 }
         }
       },
       "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
+        "tooltip": { "mode": "multi", "sort": "desc" },
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max",
-            "lastNotNull"
-          ]
+          "calcs": ["mean", "max", "lastNotNull"]
         }
       }
     },
     {
-      "id": 9,
+      "id": 108,
+      "type": "bargauge",
+      "title": "Avg Duration by Endpoint (ms)",
+      "description": "Duração média por endpoint",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 7 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_request_duration_seconds_sum{service_name=\"$service\"}[$__rate_interval])) by (http_request_method, url_template) / clamp_min(sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\"}[$__rate_interval])) by (http_request_method, url_template), 0.001) * 1000",
+          "instant": true,
+          "legendFormat": "{{http_request_method}} {{url_template}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 100 },
+              { "color": "orange", "value": 300 },
+              { "color": "red", "value": 1000 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "showUnfilled": true
+      }
+    },
+    {
+      "id": 109,
+      "type": "table",
+      "title": "Top 10 Endpoints — Latency Detail",
+      "description": "Top 10 endpoints por p99 de latência com contagem e média",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 15 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "topk(10, histogram_quantile(0.99, sum(rate(http_server_request_duration_seconds_bucket{service_name=\"$service\"}[$__rate_interval])) by (le, http_request_method, url_template)) * 1000)",
+          "instant": true,
+          "legendFormat": "",
+          "format": "table",
+          "refId": "P99"
+        },
+        {
+          "expr": "topk(10, histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{service_name=\"$service\"}[$__rate_interval])) by (le, http_request_method, url_template)) * 1000)",
+          "instant": true,
+          "legendFormat": "",
+          "format": "table",
+          "refId": "P95"
+        },
+        {
+          "expr": "topk(10, sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\"}[$__rate_interval])) by (http_request_method, url_template))",
+          "instant": true,
+          "legendFormat": "",
+          "format": "table",
+          "refId": "RPS"
+        },
+        {
+          "expr": "topk(10, sum(rate(http_server_request_duration_seconds_sum{service_name=\"$service\"}[$__rate_interval])) by (http_request_method, url_template) / clamp_min(sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\"}[$__rate_interval])) by (http_request_method, url_template), 0.001) * 1000)",
+          "instant": true,
+          "legendFormat": "",
+          "format": "table",
+          "refId": "AVG"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "le": true
+            },
+            "renameByName": {
+              "http_request_method": "Method",
+              "url_template": "Endpoint",
+              "Value #P99": "p99 (ms)",
+              "Value #P95": "p95 (ms)",
+              "Value #RPS": "req/s",
+              "Value #AVG": "Avg (ms)"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto" }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "p99 (ms)" },
+            "properties": [
+              { "id": "unit", "value": "ms" },
+              { "id": "decimals", "value": 1 },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green", "value": null },
+                    { "color": "yellow", "value": 300 },
+                    { "color": "red", "value": 1000 }
+                  ]
+                }
+              },
+              { "id": "custom.displayMode", "value": "color-background" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "p95 (ms)" },
+            "properties": [
+              { "id": "unit", "value": "ms" },
+              { "id": "decimals", "value": 1 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Avg (ms)" },
+            "properties": [
+              { "id": "unit", "value": "ms" },
+              { "id": "decimals", "value": 1 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "req/s" },
+            "properties": [
+              { "id": "unit", "value": "reqps" },
+              { "id": "decimals", "value": 2 }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "displayName": "p99 (ms)", "desc": true }],
+        "footer": { "show": false }
+      }
+    },
+
+    {
+      "id": 200,
+      "type": "row",
+      "title": "📈 Traffic",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "collapsed": false
+    },
+    {
+      "id": 201,
+      "type": "timeseries",
+      "title": "Request Rate by Endpoint (req/s)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\"}[$__rate_interval])) by (http_request_method, url_template)",
+          "legendFormat": "{{http_request_method}} {{url_template}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "lineWidth": 2, "fillOpacity": 8 }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "max", "lastNotNull"]
+        }
+      }
+    },
+    {
+      "id": 202,
+      "type": "timeseries",
+      "title": "% 2xx Requests by Endpoint",
+      "description": "Percentual de requisições com sucesso (2xx) por endpoint",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "100 * sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\", http_response_status_code=~\"2..\"}[$__rate_interval])) by (http_request_method, url_template) / clamp_min(sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\"}[$__rate_interval])) by (http_request_method, url_template), 0.001)",
+          "legendFormat": "{{http_request_method}} {{url_template}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "custom": { "lineWidth": 2, "fillOpacity": 8 }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "min", "lastNotNull"]
+        }
+      }
+    },
+
+    {
+      "id": 300,
+      "type": "row",
+      "title": "🚨 Errors",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 32 },
+      "collapsed": false
+    },
+    {
+      "id": 301,
+      "type": "stat",
+      "title": "5xx Error Rate (%)",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 33 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "100 * sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\", http_response_status_code=~\"5..\"}[$__rate_interval])) / clamp_min(sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\"}[$__rate_interval])), 0.001)",
+          "instant": true,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "orange", "value": 5 },
+              { "color": "red", "value": 10 }
+            ]
+          },
+          "noValue": "0"
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 302,
+      "type": "stat",
+      "title": "4xx Error Rate (%)",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 33 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "100 * sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\", http_response_status_code=~\"4..\"}[$__rate_interval])) / clamp_min(sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\"}[$__rate_interval])), 0.001)",
+          "instant": true,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "orange", "value": 15 },
+              { "color": "red", "value": 30 }
+            ]
+          },
+          "noValue": "0"
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 303,
+      "type": "stat",
+      "title": "Slow Requests Rate (%)",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 33 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "100 * sum(rate(http_access_events_total{service_name=\"$service\",outcome=\"SLOW\"}[5m])) / clamp_min(sum(rate(http_access_events_total{service_name=\"$service\"}[5m])),0.001)",
+          "instant": true,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 15 }
+            ]
+          },
+          "noValue": "0"
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 304,
+      "type": "stat",
+      "title": "Business Errors (window)",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 33 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sum(increase(person_errors_total{service_name=\"$service\"}[$__range]))",
+          "instant": true,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "red", "value": 50 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 305,
       "type": "timeseries",
       "title": "HTTP Status Families (req/s)",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 15
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 37 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\", http_response_status_code=~\"2..\"}[$__rate_interval]))",
@@ -465,42 +724,358 @@
       "fieldConfig": {
         "defaults": {
           "unit": "reqps",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 15
+          "custom": { "lineWidth": 2, "fillOpacity": 15 }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "2xx" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "4xx" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "5xx" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
           }
-        }
+        ]
       },
       "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
+        "tooltip": { "mode": "multi", "sort": "desc" },
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max",
-            "lastNotNull"
-          ]
+          "calcs": ["mean", "max", "lastNotNull"]
         }
       }
     },
     {
-      "id": 10,
+      "id": 306,
+      "type": "piechart",
+      "title": "HTTP Status Code Distribution",
+      "description": "Distribuição dos status codes HTTP no período",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 37 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "round(sum(increase(http_server_request_duration_seconds_count{service_name=\"$service\", http_response_status_code=\"200\"}[$__range])))",
+          "instant": true,
+          "legendFormat": "200 OK"
+        },
+        {
+          "expr": "round(sum(increase(http_server_request_duration_seconds_count{service_name=\"$service\", http_response_status_code=\"201\"}[$__range])))",
+          "instant": true,
+          "legendFormat": "201 Created"
+        },
+        {
+          "expr": "round(sum(increase(http_server_request_duration_seconds_count{service_name=\"$service\", http_response_status_code=\"204\"}[$__range])))",
+          "instant": true,
+          "legendFormat": "204 No Content"
+        },
+        {
+          "expr": "round(sum(increase(http_server_request_duration_seconds_count{service_name=\"$service\", http_response_status_code=\"400\"}[$__range])))",
+          "instant": true,
+          "legendFormat": "400 Bad Request"
+        },
+        {
+          "expr": "round(sum(increase(http_server_request_duration_seconds_count{service_name=\"$service\", http_response_status_code=\"404\"}[$__range])))",
+          "instant": true,
+          "legendFormat": "404 Not Found"
+        },
+        {
+          "expr": "round(sum(increase(http_server_request_duration_seconds_count{service_name=\"$service\", http_response_status_code=\"409\"}[$__range])))",
+          "instant": true,
+          "legendFormat": "409 Conflict"
+        },
+        {
+          "expr": "round(sum(increase(http_server_request_duration_seconds_count{service_name=\"$service\", http_response_status_code=\"500\"}[$__range])))",
+          "instant": true,
+          "legendFormat": "500 Internal Server Error"
+        },
+        {
+          "expr": "round(sum(increase(http_server_request_duration_seconds_count{service_name=\"$service\", http_response_status_code=\"502\"}[$__range])))",
+          "instant": true,
+          "legendFormat": "502 Bad Gateway"
+        },
+        {
+          "expr": "round(sum(increase(http_server_request_duration_seconds_count{service_name=\"$service\", http_response_status_code=\"503\"}[$__range])))",
+          "instant": true,
+          "legendFormat": "503 Service Unavailable"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "pieType": "donut",
+        "tooltip": { "mode": "multi" },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": ["value", "percent"]
+        }
+      }
+    },
+    {
+      "id": 307,
+      "type": "timeseries",
+      "title": "Top 5xx Endpoints (req/s)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 45 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "topk(10, sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\", http_response_status_code=~\"5..\"}[$__rate_interval])) by (http_request_method, url_template))",
+          "legendFormat": "{{http_request_method}} {{url_template}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "max", "lastNotNull"]
+        }
+      }
+    },
+    {
+      "id": 308,
+      "type": "barchart",
+      "title": "Business Errors by Code",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 45 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sum(increase(person_errors_total{service_name=\"$service\"}[$__range])) by (error_code)",
+          "instant": true,
+          "legendFormat": "{{error_code}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short" }
+      },
+      "options": {
+        "orientation": "horizontal",
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      }
+    },
+
+    {
+      "id": 400,
+      "type": "row",
+      "title": "⚡ Saturation",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 53 },
+      "collapsed": false
+    },
+    {
+      "id": 401,
+      "type": "stat",
+      "title": "DB Pool Saturation (%)",
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 54 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "100 * sum(hikaricp_connections_active{service_name=\"$service\"}) / clamp_min(sum(hikaricp_connections_max{service_name=\"$service\"}),1)",
+          "instant": true,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 60 },
+              { "color": "orange", "value": 80 },
+              { "color": "red", "value": 95 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 402,
+      "type": "gauge",
+      "title": "Heap Used (%)",
+      "description": "Percentual de heap memory utilizado",
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 54 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "100 * sum(jvm_memory_used_bytes{service_name=\"$service\", area=\"heap\"}) / clamp_min(sum(jvm_memory_max_bytes{service_name=\"$service\", area=\"heap\"}), 1)",
+          "instant": true,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 70 },
+              { "color": "orange", "value": 85 },
+              { "color": "red", "value": 95 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      }
+    },
+    {
+      "id": 403,
+      "type": "gauge",
+      "title": "Non-Heap Used (%)",
+      "description": "Percentual de non-heap memory utilizado (Metaspace, Code Cache, etc.)",
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 54 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "100 * sum(jvm_memory_used_bytes{service_name=\"$service\", area=\"nonheap\"}) / clamp_min(sum(jvm_memory_committed_bytes{service_name=\"$service\", area=\"nonheap\"}), 1)",
+          "instant": true,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 70 },
+              { "color": "orange", "value": 85 },
+              { "color": "red", "value": 95 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      }
+    },
+    {
+      "id": 404,
+      "type": "timeseries",
+      "title": "CPU Usage (%)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 58 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "process_cpu_usage{service_name=\"$service\"} * 100",
+          "legendFormat": "Process CPU %"
+        },
+        {
+          "expr": "system_cpu_usage{service_name=\"$service\"} * 100",
+          "legendFormat": "System CPU %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Process CPU %" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "System CPU %" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "max", "lastNotNull"]
+        }
+      }
+    },
+    {
+      "id": 405,
+      "type": "timeseries",
+      "title": "System Load Average vs CPU Cores",
+      "description": "Load average 1m comparado com o número de CPUs disponíveis",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 58 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "system_load_average_1m{service_name=\"$service\"}",
+          "legendFormat": "Load Avg 1m"
+        },
+        {
+          "expr": "system_cpu_count{service_name=\"$service\"}",
+          "legendFormat": "CPU Cores"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "lineWidth": 2, "fillOpacity": 5 }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "CPU Cores" },
+            "properties": [
+              { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 10] } },
+              { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "max", "lastNotNull"]
+        }
+      }
+    },
+    {
+      "id": 406,
       "type": "timeseries",
       "title": "HikariCP Connection Pool",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 15
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 66 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "sum(hikaricp_connections_active{service_name=\"$service\"}) by (pool)",
@@ -513,59 +1088,84 @@
         {
           "expr": "sum(hikaricp_connections_max{service_name=\"$service\"}) by (pool)",
           "legendFormat": "max — {{pool}}"
+        },
+        {
+          "expr": "sum(hikaricp_connections_idle{service_name=\"$service\"}) by (pool)",
+          "legendFormat": "idle — {{pool}}"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 10
-          }
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
         }
       },
       "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
+        "tooltip": { "mode": "multi", "sort": "desc" },
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max",
-            "lastNotNull"
-          ]
+          "calcs": ["mean", "max", "lastNotNull"]
         }
       }
     },
     {
-      "id": 11,
-      "type": "row",
-      "title": "Resilience & RCA",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 23
+      "id": 407,
+      "type": "timeseries",
+      "title": "JVM Memory — Heap & Non-Heap (bytes)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 66 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sum(jvm_memory_used_bytes{service_name=\"$service\", area=\"heap\"})",
+          "legendFormat": "Heap Used"
+        },
+        {
+          "expr": "sum(jvm_memory_committed_bytes{service_name=\"$service\", area=\"heap\"})",
+          "legendFormat": "Heap Committed"
+        },
+        {
+          "expr": "sum(jvm_memory_max_bytes{service_name=\"$service\", area=\"heap\"})",
+          "legendFormat": "Heap Max"
+        },
+        {
+          "expr": "sum(jvm_memory_used_bytes{service_name=\"$service\", area=\"nonheap\"})",
+          "legendFormat": "Non-Heap Used"
+        },
+        {
+          "expr": "sum(jvm_memory_committed_bytes{service_name=\"$service\", area=\"nonheap\"})",
+          "legendFormat": "Non-Heap Committed"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": { "lineWidth": 2, "fillOpacity": 5 }
+        }
       },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "max", "lastNotNull"]
+        }
+      }
+    },
+
+    {
+      "id": 500,
+      "type": "row",
+      "title": "🔄 Resilience & Retry",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 74 },
       "collapsed": false
     },
     {
-      "id": 12,
+      "id": 501,
       "type": "stat",
       "title": "DB Retry Exhausted / min",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 0,
-        "y": 24
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 75 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "sum(rate(db_retry_exhausted_total{service_name=\"$service\"}[5m])) * 60",
@@ -576,49 +1176,29 @@
       "fieldConfig": {
         "defaults": {
           "unit": "short",
+          "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 1
-              },
-              {
-                "color": "red",
-                "value": 5
-              }
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
             ]
           }
         }
       },
       "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
+        "reduceOptions": { "calcs": ["lastNotNull"] },
         "colorMode": "background",
         "graphMode": "area"
       }
     },
     {
-      "id": 13,
+      "id": 502,
       "type": "stat",
       "title": "DB Retry Attempts / min",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 6,
-        "y": 24
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 75 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "sum(rate(db_retry_attempts_total{service_name=\"$service\"}[5m])) * 60",
@@ -628,33 +1208,22 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short"
+          "unit": "short",
+          "noValue": "0"
         }
       },
       "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
+        "reduceOptions": { "calcs": ["lastNotNull"] },
         "colorMode": "background",
         "graphMode": "area"
       }
     },
     {
-      "id": 14,
+      "id": 503,
       "type": "stat",
-      "title": "Slow Requests Rate (%)",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 12,
-        "y": 24
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "title": "HTTP Access Slow %",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 75 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "100 * sum(rate(http_access_events_total{service_name=\"$service\",outcome=\"SLOW\"}[5m])) / clamp_min(sum(rate(http_access_events_total{service_name=\"$service\"}[5m])),0.001)",
@@ -665,85 +1234,62 @@
       "fieldConfig": {
         "defaults": {
           "unit": "percent",
+          "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 5
-              },
-              {
-                "color": "red",
-                "value": 15
-              }
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 15 }
             ]
           }
         }
       },
       "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
+        "reduceOptions": { "calcs": ["lastNotNull"] },
         "colorMode": "background",
         "graphMode": "none"
       }
     },
     {
-      "id": 15,
+      "id": 504,
       "type": "stat",
-      "title": "Business Errors (window)",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 18,
-        "y": 24
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "title": "HTTP Access Denied %",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 75 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
-          "expr": "sum(increase(person_errors_total{service_name=\"$service\"}[$__range]))",
+          "expr": "100 * sum(rate(http_access_events_total{service_name=\"$service\",outcome=\"DENIED\"}[5m])) / clamp_min(sum(rate(http_access_events_total{service_name=\"$service\"}[5m])),0.001)",
           "instant": true,
           "legendFormat": ""
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short"
+          "unit": "percent",
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          }
         }
       },
       "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
+        "reduceOptions": { "calcs": ["lastNotNull"] },
         "colorMode": "background",
-        "graphMode": "area"
+        "graphMode": "none"
       }
     },
     {
-      "id": 16,
+      "id": 505,
       "type": "timeseries",
       "title": "DB Retry Attempts by Method",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 28
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 79 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "sum(rate(db_retry_attempts_total{service_name=\"$service\"}[$__rate_interval])) by (method, will_retry)",
@@ -753,42 +1299,24 @@
       "fieldConfig": {
         "defaults": {
           "unit": "ops",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 15
-          }
+          "custom": { "lineWidth": 2, "fillOpacity": 15 }
         }
       },
       "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
+        "tooltip": { "mode": "multi", "sort": "desc" },
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max",
-            "lastNotNull"
-          ]
+          "calcs": ["mean", "max", "lastNotNull"]
         }
       }
     },
     {
-      "id": 17,
+      "id": 506,
       "type": "timeseries",
       "title": "DB Retry Next Delay Avg (ms)",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 28
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 79 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "1000 * sum(rate(db_retry_next_delay_sum{service_name=\"$service\"}[$__rate_interval])) / clamp_min(sum(rate(db_retry_next_delay_count{service_name=\"$service\"}[$__rate_interval])), 0.001)",
@@ -798,196 +1326,32 @@
       "fieldConfig": {
         "defaults": {
           "unit": "ms",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 10
-          },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 },
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 200
-              },
-              {
-                "color": "red",
-                "value": 1000
-              }
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 200 },
+              { "color": "red", "value": 1000 }
             ]
           }
         }
       },
       "options": {
-        "tooltip": {
-          "mode": "single",
-          "sort": "desc"
-        },
+        "tooltip": { "mode": "single", "sort": "desc" },
         "legend": {
           "displayMode": "list",
           "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max",
-            "lastNotNull"
-          ]
+          "calcs": ["mean", "max", "lastNotNull"]
         }
       }
     },
     {
-      "id": 18,
-      "type": "barchart",
-      "title": "Business Errors by Code",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 36
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "targets": [
-        {
-          "expr": "sum(increase(person_errors_total{service_name=\"$service\"}[$__range])) by (error_code)",
-          "instant": true,
-          "legendFormat": "{{error_code}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short"
-        }
-      },
-      "options": {
-        "orientation": "horizontal",
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "single"
-        }
-      }
-    },
-    {
-      "id": 19,
-      "type": "timeseries",
-      "title": "Top 5xx Endpoints (req/s)",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 36
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "targets": [
-        {
-          "expr": "topk(10, sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\", http_response_status_code=~\"5..\"}[$__rate_interval])) by (http_request_method, url_template))",
-          "legendFormat": "{{http_request_method}} {{url_template}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 10
-          }
-        }
-      },
-      "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max",
-            "lastNotNull"
-          ]
-        }
-      }
-    },
-    {
-      "id": 20,
-      "type": "timeseries",
-      "title": "CPU & Heap Usage (%)",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 44
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "targets": [
-        {
-          "expr": "process_cpu_usage{service_name=\"$service\"} * 100",
-          "legendFormat": "process cpu %"
-        },
-        {
-          "expr": "system_cpu_usage{service_name=\"$service\"} * 100",
-          "legendFormat": "system cpu %"
-        },
-        {
-          "expr": "100 * sum(jvm_memory_used_bytes{service_name=\"$service\", area=\"heap\"}) / clamp_min(sum(jvm_memory_max_bytes{service_name=\"$service\", area=\"heap\"}), 1)",
-          "legendFormat": "heap used %"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 10
-          }
-        }
-      },
-      "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max",
-            "lastNotNull"
-          ]
-        }
-      }
-    },
-    {
-      "id": 21,
+      "id": 507,
       "type": "timeseries",
       "title": "HTTP Access Outcomes",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 44
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 87 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "sum(rate(http_access_events_total{service_name=\"$service\"}[$__rate_interval])) by (outcome)",
@@ -997,25 +1361,220 @@
       "fieldConfig": {
         "defaults": {
           "unit": "ops",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 15
+          "custom": { "lineWidth": 2, "fillOpacity": 15 }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "max", "lastNotNull"]
+        }
+      }
+    },
+
+    {
+      "id": 600,
+      "type": "row",
+      "title": "☕ JVM Runtime",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 95 },
+      "collapsed": false
+    },
+    {
+      "id": 601,
+      "type": "stat",
+      "title": "Uptime",
+      "description": "Tempo de atividade do processo",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 96 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "process_uptime_seconds{service_name=\"$service\"}",
+          "instant": true,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null }
+            ]
           }
         }
       },
       "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 602,
+      "type": "stat",
+      "title": "JVM Version",
+      "description": "Versão do JVM runtime",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 96 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "jvm_info{service_name=\"$service\"}",
+          "instant": true,
+          "legendFormat": "{{runtime}} {{version}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "purple", "value": null }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "name"
+      }
+    },
+    {
+      "id": 603,
+      "type": "stat",
+      "title": "Live Threads",
+      "description": "Número atual de threads ativas",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 96 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "jvm_threads_live_threads{service_name=\"$service\"}",
+          "instant": true,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 100 },
+              { "color": "red", "value": 300 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 604,
+      "type": "stat",
+      "title": "GC Pause Rate (ops/s)",
+      "description": "Taxa de pausas do GC",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 96 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sum(rate(jvm_gc_pause_seconds_count{service_name=\"$service\"}[$__rate_interval]))",
+          "instant": true,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 605,
+      "type": "timeseries",
+      "title": "JVM Threads Over Time",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 100 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "jvm_threads_live_threads{service_name=\"$service\"}",
+          "legendFormat": "Live"
         },
+        {
+          "expr": "jvm_threads_daemon_threads{service_name=\"$service\"}",
+          "legendFormat": "Daemon"
+        },
+        {
+          "expr": "jvm_threads_peak_threads{service_name=\"$service\"}",
+          "legendFormat": "Peak"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "lineWidth": 2, "fillOpacity": 5 }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max",
-            "lastNotNull"
-          ]
+          "calcs": ["mean", "max", "lastNotNull"]
+        }
+      }
+    },
+    {
+      "id": 606,
+      "type": "timeseries",
+      "title": "GC Pause Duration (ms)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 100 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "rate(jvm_gc_pause_seconds_sum{service_name=\"$service\"}[$__rate_interval]) / clamp_min(rate(jvm_gc_pause_seconds_count{service_name=\"$service\"}[$__rate_interval]), 0.001) * 1000",
+          "legendFormat": "{{action}} / {{cause}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "max", "lastNotNull"]
         }
       }
     }
