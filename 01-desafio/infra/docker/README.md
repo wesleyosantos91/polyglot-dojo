@@ -71,10 +71,15 @@ docker compose down -v
 
 ## Dashboards Grafana
 
-Dashboards disponíveis em `./grafana/dashboards`:
+Dashboards disponíveis em `./grafana/dashboards/` (provisionados automaticamente):
 
-- `api-person-spring-golden-signals.json`: Golden Signals com foco no serviço atual (`api-person-spring`).
-- `api-person-spring-troubleshooting-rca.json`: troubleshooting e RCA (5xx, retries, erros de negócio e saturação) do serviço atual.
+| Dashboard | Arquivo | Descrição |
+|---|---|---|
+| **Golden Signals** | `api-person-spring-golden-signals.json` | SLI/SLO/Apdex, tráfego, latência (heatmap + percentis), erros, saturação, GC, resiliência |
+| **Troubleshooting & RCA** | `api-person-spring-troubleshooting-rca.json` | Investigação de incidentes: logs Loki, retry por exceção, latência por endpoint, HikariCP acquire/usage time |
+| **JVM & Infrastructure** | `api-person-spring-jvm-infra.json` | Deep-dive JVM: heap/non-heap por pool, GC overhead, threads por estado, class loading, file descriptors, buffer pools |
+
+Todos os dashboards possuem **links de navegação** entre si e variáveis compartilhadas (`service`, `DS_PROMETHEUS`, `DS_LOKI`).
 
 ## Alertas ativos (Prometheus)
 

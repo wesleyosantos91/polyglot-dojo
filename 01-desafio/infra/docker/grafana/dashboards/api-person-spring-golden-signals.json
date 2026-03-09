@@ -1,26 +1,50 @@
 {
   "uid": "api-person-spring-golden-signals",
   "title": "API Person Spring — Golden Signals",
-  "description": "Golden Signals e Resilience para api-person-spring",
+  "description": "Visão operacional baseada nos 4 Golden Signals (Latência, Tráfego, Erros, Saturação) + SLO + Apdex + JVM",
   "tags": [
     "api-person-spring",
     "spring-boot",
     "golden-signals",
     "sre",
-    "resilience"
+    "resilience",
+    "slo"
   ],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "15s",
   "time": {
     "from": "now-1h",
     "to": "now"
   },
-  "graphTooltip": 1,
+  "graphTooltip": 2,
   "editable": true,
   "fiscalYearStartMonth": 0,
-  "links": [],
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "bolt",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": false,
+      "title": "Troubleshooting & RCA",
+      "type": "link",
+      "url": "/d/api-person-spring-troubleshooting"
+    },
+    {
+      "asDropdown": false,
+      "icon": "dashboard",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": false,
+      "title": "JVM & Infrastructure",
+      "type": "link",
+      "url": "/d/api-person-spring-jvm-infra"
+    }
+  ],
   "annotations": {
     "list": [
       {
@@ -70,51 +94,44 @@
           "refId": "ServiceVariableQuery"
         },
         "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "0.5",
+          "value": "0.5"
+        },
+        "description": "Limiar Apdex T (segundos). Requisições abaixo de T = satisfeita, entre T e 4T = tolerável, acima de 4T = frustrada.",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Apdex T (s)",
+        "multi": false,
+        "name": "apdex_t",
+        "options": [
+          {"selected": false, "text": "0.1", "value": "0.1"},
+          {"selected": false, "text": "0.2", "value": "0.2"},
+          {"selected": true, "text": "0.5", "value": "0.5"},
+          {"selected": false, "text": "1.0", "value": "1.0"}
+        ],
+        "type": "custom"
       }
     ]
   },
   "panels": [
     {
-      "id": 1,
-      "type": "text",
-      "title": "",
-      "gridPos": {
-        "h": 2,
-        "w": 24,
-        "x": 0,
-        "y": 0
-      },
-      "options": {
-        "mode": "html",
-        "content": "<h1 style=\"background-color:#f39c12;padding:8px;border-radius:4px;\"><center><b><font size=\"5\" color=\"#181b1f\">API Person Spring — Observability</font></b></center></h1>"
-      }
-    },
-    {
-      "id": 2,
+      "id": 100,
       "type": "row",
-      "title": "Golden Signals",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 2
-      },
+      "title": "⚡ Indicadores-Chave (SLI / SLO / Apdex)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
       "collapsed": false
     },
     {
-      "id": 3,
+      "id": 1,
       "type": "stat",
       "title": "Throughput (req/s)",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 0,
-        "y": 3
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "description": "Taxa total de requisições HTTP por segundo (todos os endpoints e status).",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\"}[$__rate_interval]))",
@@ -128,48 +145,65 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 50
-              },
-              {
-                "color": "red",
-                "value": 200
-              }
+              { "color": "blue", "value": null },
+              { "color": "green", "value": 1 },
+              { "color": "yellow", "value": 100 },
+              { "color": "red", "value": 500 }
             ]
           }
         }
       },
       "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "colorMode": "background",
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background_solid",
         "graphMode": "area",
-        "justifyMode": "auto",
+        "justifyMode": "center",
         "textMode": "auto"
       }
     },
     {
-      "id": 4,
+      "id": 2,
+      "type": "stat",
+      "title": "Latency p50 (ms)",
+      "description": "Mediana da latência de resposta HTTP. 50% das requisições respondem abaixo deste valor.",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(http_server_request_duration_seconds_bucket{service_name=\"$service\"}[$__rate_interval])) by (le)) * 1000",
+          "instant": true,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 100 },
+              { "color": "orange", "value": 300 },
+              { "color": "red", "value": 500 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background_solid",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 3,
       "type": "stat",
       "title": "Latency p95 (ms)",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 6,
-        "y": 3
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "description": "95% das requisições respondem abaixo deste valor. SLO alvo: < 500ms.",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{service_name=\"$service\"}[$__rate_interval])) by (le)) * 1000",
@@ -183,52 +217,29 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 200
-              },
-              {
-                "color": "orange",
-                "value": 500
-              },
-              {
-                "color": "red",
-                "value": 1000
-              }
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 200 },
+              { "color": "orange", "value": 500 },
+              { "color": "red", "value": 1000 }
             ]
           }
         }
       },
       "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "colorMode": "background",
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background_solid",
         "graphMode": "none",
-        "justifyMode": "auto",
+        "justifyMode": "center",
         "textMode": "auto"
       }
     },
     {
-      "id": 5,
+      "id": 4,
       "type": "stat",
       "title": "5xx Error Rate (%)",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 12,
-        "y": 3
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "description": "Percentual de erros de servidor (5xx) sobre o total de requisições. SLO alvo: < 1%.",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "100 * sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\", http_response_status_code=~\"5..\"}[$__rate_interval])) / clamp_min(sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\"}[$__rate_interval])), 0.001)",
@@ -242,56 +253,72 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 1
-              },
-              {
-                "color": "orange",
-                "value": 5
-              },
-              {
-                "color": "red",
-                "value": 10
-              }
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "orange", "value": 5 },
+              { "color": "red", "value": 10 }
             ]
           },
           "noValue": "0"
         }
       },
       "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "colorMode": "background",
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background_solid",
         "graphMode": "area",
-        "justifyMode": "auto",
+        "justifyMode": "center",
         "textMode": "auto"
       }
     },
     {
-      "id": 6,
-      "type": "stat",
-      "title": "DB Pool Saturation (%)",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 18,
-        "y": 3
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "id": 5,
+      "type": "gauge",
+      "title": "Apdex Score",
+      "description": "Application Performance Index. Satisfeita (<${apdex_t}s), Tolerável (<${apdex_t}*4s), Frustrada (acima). Alvo: > 0.9.",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
-          "expr": "100 * sum(hikaricp_connections_active{service_name=\"$service\"}) / clamp_min(sum(hikaricp_connections_max{service_name=\"$service\"}),1)",
+          "expr": "(\n  sum(rate(http_server_request_duration_seconds_bucket{service_name=\"$service\", le=\"${apdex_t}\"}[$__rate_interval]))\n  + sum(rate(http_server_request_duration_seconds_bucket{service_name=\"$service\", le=\"${apdex_t}*4\"}[$__rate_interval])) / 2\n) / clamp_min(sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\"}[$__rate_interval])), 0.001)",
+          "instant": true,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2,
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 0.5 },
+              { "color": "yellow", "value": 0.75 },
+              { "color": "green", "value": 0.9 }
+            ]
+          },
+          "noValue": "N/A"
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 6,
+      "type": "gauge",
+      "title": "DB Pool Saturation (%)",
+      "description": "Percentual de conexões ativas em relação ao máximo do HikariCP (writer + reader).",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "100 * sum(hikaricp_connections_active{service_name=\"$service\"}) / clamp_min(sum(hikaricp_connections_max{service_name=\"$service\"}), 1)",
           "instant": true,
           "legendFormat": ""
         }
@@ -304,52 +331,182 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 60
-              },
-              {
-                "color": "orange",
-                "value": 80
-              },
-              {
-                "color": "red",
-                "value": 95
-              }
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 60 },
+              { "color": "orange", "value": 80 },
+              { "color": "red", "value": 95 }
             ]
           }
         }
       },
       "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "auto"
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "orientation": "auto"
       }
+    },
+    {
+      "id": 101,
+      "type": "stat",
+      "title": "SLO Compliance — Latency (% < 500ms)",
+      "description": "Percentual de requisições que responderam em menos de 500ms (SLO bucket).",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "100 * sum(rate(http_server_request_duration_seconds_bucket{service_name=\"$service\", le=\"0.5\"}[$__rate_interval])) / clamp_min(sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\"}[$__rate_interval])), 0.001)",
+          "instant": true,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 90 },
+              { "color": "yellow", "value": 95 },
+              { "color": "green", "value": 99 }
+            ]
+          },
+          "noValue": "N/A"
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background_solid",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 102,
+      "type": "stat",
+      "title": "SLO Compliance — Errors (% success)",
+      "description": "Percentual de requisições sem erro 5xx. SLO alvo: > 99.9%.",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "100 * (1 - sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\", http_response_status_code=~\"5..\"}[$__rate_interval])) / clamp_min(sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\"}[$__rate_interval])), 0.001))",
+          "instant": true,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 95 },
+              { "color": "yellow", "value": 99 },
+              { "color": "green", "value": 99.9 }
+            ]
+          },
+          "noValue": "100"
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background_solid",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 103,
+      "type": "stat",
+      "title": "Total Requests (window)",
+      "description": "Total acumulado de requisições no período selecionado.",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sum(increase(http_server_request_duration_seconds_count{service_name=\"$service\"}[$__range]))",
+          "instant": true,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background_solid",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 104,
+      "type": "stat",
+      "title": "Active Alerts",
+      "description": "Número de alertas ativos do Prometheus para este serviço.",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "count(ALERTS{service=\"$service\", alertstate=\"firing\"}) OR vector(0)",
+          "instant": true,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 3 }
+            ]
+          },
+          "noValue": "0"
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background_solid",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 200,
+      "type": "row",
+      "title": "📈 Tráfego & Latência",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "collapsed": false
     },
     {
       "id": 7,
       "type": "timeseries",
       "title": "Request Rate by Endpoint",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 7
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "description": "Taxa de requisições por segundo, agrupada por método HTTP e endpoint.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\"}[$__rate_interval])) by (http_request_method, url_template)",
@@ -361,23 +518,20 @@
           "unit": "reqps",
           "custom": {
             "lineWidth": 2,
-            "fillOpacity": 8
+            "fillOpacity": 15,
+            "gradientMode": "scheme",
+            "spanNulls": true,
+            "showPoints": "never",
+            "lineInterpolation": "smooth"
           }
         }
       },
       "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
+        "tooltip": { "mode": "multi", "sort": "desc" },
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max",
-            "lastNotNull"
-          ]
+          "calcs": ["mean", "max", "lastNotNull"]
         }
       }
     },
@@ -385,16 +539,9 @@
       "id": 8,
       "type": "timeseries",
       "title": "Latency Percentiles — p50 / p95 / p99",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 7
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "description": "Distribuição de latência ao longo do tempo. Linhas mais próximas indicam menor variância.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "histogram_quantile(0.50, sum(rate(http_server_request_duration_seconds_bucket{service_name=\"$service\"}[$__rate_interval])) by (le)) * 1000",
@@ -414,52 +561,92 @@
           "unit": "ms",
           "custom": {
             "lineWidth": 2,
-            "fillOpacity": 5
+            "fillOpacity": 8,
+            "gradientMode": "scheme",
+            "spanNulls": true,
+            "showPoints": "never",
+            "lineInterpolation": "smooth"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "p50" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "p95" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "p99" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "max", "lastNotNull"]
+        }
+      }
+    },
+    {
+      "id": 105,
+      "type": "heatmap",
+      "title": "Request Duration Distribution (Heatmap)",
+      "description": "Distribuição de latência por bucket de histograma. Quanto mais escuro, mais requisições naquele intervalo de tempo.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sum(increase(http_server_request_duration_seconds_bucket{service_name=\"$service\"}[$__rate_interval])) by (le)",
+          "legendFormat": "{{le}}",
+          "format": "heatmap"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "scaleDistribution": { "type": "log", "log": 2 }
           }
         }
       },
       "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
+        "calculate": false,
+        "yAxis": { "unit": "s", "axisLabel": "Duration" },
+        "color": {
+          "scheme": "Spectral",
+          "mode": "scheme",
+          "reverse": true,
+          "fill": "dark-orange",
+          "exponent": 0.5
         },
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max",
-            "lastNotNull"
-          ]
-        }
+        "cellGap": 1,
+        "tooltip": { "show": true, "yHistogram": true },
+        "showValue": "never"
       }
     },
     {
       "id": 9,
       "type": "timeseries",
       "title": "HTTP Status Families (req/s)",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 15
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "description": "Taxa de requisições agrupadas por família de status (2xx, 4xx, 5xx).",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\", http_response_status_code=~\"2..\"}[$__rate_interval]))",
-          "legendFormat": "2xx"
+          "legendFormat": "2xx ✅"
         },
         {
           "expr": "sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\", http_response_status_code=~\"4..\"}[$__rate_interval]))",
-          "legendFormat": "4xx"
+          "legendFormat": "4xx ⚠️"
         },
         {
           "expr": "sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\", http_response_status_code=~\"5..\"}[$__rate_interval]))",
-          "legendFormat": "5xx"
+          "legendFormat": "5xx ❌"
         }
       ],
       "fieldConfig": {
@@ -467,52 +654,68 @@
           "unit": "reqps",
           "custom": {
             "lineWidth": 2,
-            "fillOpacity": 15
+            "fillOpacity": 20,
+            "gradientMode": "scheme",
+            "spanNulls": true,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "stacking": { "mode": "normal", "group": "A" }
           }
-        }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byRegexp", "options": "2xx.*" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": "4xx.*" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": "5xx.*" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          }
+        ]
       },
       "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
+        "tooltip": { "mode": "multi", "sort": "desc" },
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max",
-            "lastNotNull"
-          ]
+          "calcs": ["mean", "max", "lastNotNull"]
         }
       }
     },
     {
+      "id": 300,
+      "type": "row",
+      "title": "🗄️ Saturação — Connection Pool & Recursos",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 26 },
+      "collapsed": false
+    },
+    {
       "id": 10,
       "type": "timeseries",
-      "title": "HikariCP Connection Pool",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 15
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "title": "HikariCP Connection Pool — Writer",
+      "description": "Monitoramento do pool de conexões de escrita: ativas, pendentes e máximo configurado.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 27 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
-          "expr": "sum(hikaricp_connections_active{service_name=\"$service\"}) by (pool)",
-          "legendFormat": "active — {{pool}}"
+          "expr": "sum(hikaricp_connections_active{service_name=\"$service\", pool=~\".*writer.*\"}) by (pool)",
+          "legendFormat": "active"
         },
         {
-          "expr": "sum(hikaricp_connections_pending{service_name=\"$service\"}) by (pool)",
-          "legendFormat": "pending — {{pool}}"
+          "expr": "sum(hikaricp_connections_idle{service_name=\"$service\", pool=~\".*writer.*\"}) by (pool)",
+          "legendFormat": "idle"
         },
         {
-          "expr": "sum(hikaricp_connections_max{service_name=\"$service\"}) by (pool)",
-          "legendFormat": "max — {{pool}}"
+          "expr": "sum(hikaricp_connections_pending{service_name=\"$service\", pool=~\".*writer.*\"}) by (pool)",
+          "legendFormat": "pending"
+        },
+        {
+          "expr": "sum(hikaricp_connections_max{service_name=\"$service\", pool=~\".*writer.*\"}) by (pool)",
+          "legendFormat": "max"
         }
       ],
       "fieldConfig": {
@@ -520,52 +723,209 @@
           "unit": "short",
           "custom": {
             "lineWidth": 2,
-            "fillOpacity": 10
+            "fillOpacity": 10,
+            "gradientMode": "scheme",
+            "spanNulls": true,
+            "showPoints": "never",
+            "lineInterpolation": "smooth"
           }
-        }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "max" },
+            "properties": [
+              { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 10] } },
+              { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } },
+              { "id": "custom.fillOpacity", "value": 0 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "pending" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }
+            ]
+          }
+        ]
       },
       "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
+        "tooltip": { "mode": "multi", "sort": "desc" },
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max",
-            "lastNotNull"
-          ]
+          "calcs": ["mean", "max", "lastNotNull"]
         }
       }
     },
     {
-      "id": 11,
-      "type": "row",
-      "title": "Resilience & RCA",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 23
+      "id": 106,
+      "type": "timeseries",
+      "title": "HikariCP Connection Pool — Reader",
+      "description": "Monitoramento do pool de conexões de leitura: ativas, pendentes e máximo configurado.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 27 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sum(hikaricp_connections_active{service_name=\"$service\", pool=~\".*reader.*\"}) by (pool)",
+          "legendFormat": "active"
+        },
+        {
+          "expr": "sum(hikaricp_connections_idle{service_name=\"$service\", pool=~\".*reader.*\"}) by (pool)",
+          "legendFormat": "idle"
+        },
+        {
+          "expr": "sum(hikaricp_connections_pending{service_name=\"$service\", pool=~\".*reader.*\"}) by (pool)",
+          "legendFormat": "pending"
+        },
+        {
+          "expr": "sum(hikaricp_connections_max{service_name=\"$service\", pool=~\".*reader.*\"}) by (pool)",
+          "legendFormat": "max"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "scheme",
+            "spanNulls": true,
+            "showPoints": "never",
+            "lineInterpolation": "smooth"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "max" },
+            "properties": [
+              { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 10] } },
+              { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } },
+              { "id": "custom.fillOpacity", "value": 0 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "pending" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }
+            ]
+          }
+        ]
       },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "max", "lastNotNull"]
+        }
+      }
+    },
+    {
+      "id": 20,
+      "type": "timeseries",
+      "title": "CPU & Heap Usage (%)",
+      "description": "Uso de CPU (processo e sistema) e percentual de heap utilizado em relação ao máximo.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 35 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "process_cpu_usage{service_name=\"$service\"} * 100",
+          "legendFormat": "Process CPU %"
+        },
+        {
+          "expr": "system_cpu_usage{service_name=\"$service\"} * 100",
+          "legendFormat": "System CPU %"
+        },
+        {
+          "expr": "100 * sum(jvm_memory_used_bytes{service_name=\"$service\", area=\"heap\"}) / clamp_min(sum(jvm_memory_max_bytes{service_name=\"$service\", area=\"heap\"}), 1)",
+          "legendFormat": "Heap Used %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "scheme",
+            "spanNulls": true,
+            "showPoints": "never",
+            "lineInterpolation": "smooth"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Process CPU %" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Heap Used %" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "max", "lastNotNull"]
+        }
+      }
+    },
+    {
+      "id": 107,
+      "type": "timeseries",
+      "title": "GC Pause Time & Count",
+      "description": "Tempo e contagem de pausas do Garbage Collector. Pausas frequentes ou longas indicam pressão de memória.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 35 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sum(rate(jvm_gc_pause_seconds_sum{service_name=\"$service\"}[$__rate_interval])) by (cause) * 1000",
+          "legendFormat": "GC time (ms/s) — {{cause}}"
+        },
+        {
+          "expr": "sum(rate(jvm_gc_pause_seconds_count{service_name=\"$service\"}[$__rate_interval])) by (cause)",
+          "legendFormat": "GC count/s — {{cause}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "scheme",
+            "spanNulls": true,
+            "showPoints": "never",
+            "lineInterpolation": "smooth"
+          }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "max", "lastNotNull"]
+        }
+      }
+    },
+    {
+      "id": 400,
+      "type": "row",
+      "title": "🛡️ Resiliência & Business Errors",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 43 },
       "collapsed": false
     },
     {
       "id": 12,
       "type": "stat",
       "title": "DB Retry Exhausted / min",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 0,
-        "y": 24
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "description": "Chamadas onde todas as tentativas de retry de banco foram esgotadas. Indica falhas persistentes de BD.",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 44 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "sum(rate(db_retry_exhausted_total{service_name=\"$service\"}[5m])) * 60",
@@ -579,46 +939,28 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 1
-              },
-              {
-                "color": "red",
-                "value": 5
-              }
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
             ]
-          }
+          },
+          "noValue": "0"
         }
       },
       "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "colorMode": "background",
-        "graphMode": "area"
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background_solid",
+        "graphMode": "area",
+        "justifyMode": "center"
       }
     },
     {
       "id": 13,
       "type": "stat",
       "title": "DB Retry Attempts / min",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 6,
-        "y": 24
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "description": "Total de tentativas de retry de banco por minuto.",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 44 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "sum(rate(db_retry_attempts_total{service_name=\"$service\"}[5m])) * 60",
@@ -628,33 +970,32 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short"
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 20 }
+            ]
+          },
+          "noValue": "0"
         }
       },
       "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "colorMode": "background",
-        "graphMode": "area"
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background_solid",
+        "graphMode": "area",
+        "justifyMode": "center"
       }
     },
     {
       "id": 14,
       "type": "stat",
       "title": "Slow Requests Rate (%)",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 12,
-        "y": 24
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "description": "Percentual de requisições classificadas como lentas (acima do threshold configurado na aplicação).",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 44 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "100 * sum(rate(http_access_events_total{service_name=\"$service\",outcome=\"SLOW\"}[5m])) / clamp_min(sum(rate(http_access_events_total{service_name=\"$service\"}[5m])),0.001)",
@@ -668,46 +1009,28 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 5
-              },
-              {
-                "color": "red",
-                "value": 15
-              }
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 15 }
             ]
-          }
+          },
+          "noValue": "0"
         }
       },
       "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "colorMode": "background",
-        "graphMode": "none"
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background_solid",
+        "graphMode": "none",
+        "justifyMode": "center"
       }
     },
     {
       "id": 15,
       "type": "stat",
       "title": "Business Errors (window)",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 18,
-        "y": 24
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "description": "Total de erros de negócio (person_errors_total) no período selecionado.",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 44 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "sum(increase(person_errors_total{service_name=\"$service\"}[$__range]))",
@@ -717,33 +1040,32 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short"
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 20 }
+            ]
+          },
+          "noValue": "0"
         }
       },
       "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "colorMode": "background",
-        "graphMode": "area"
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background_solid",
+        "graphMode": "area",
+        "justifyMode": "center"
       }
     },
     {
       "id": 16,
       "type": "timeseries",
       "title": "DB Retry Attempts by Method",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 28
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "description": "Tentativas de retry agrupadas por método de serviço e se haverá nova tentativa.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 48 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "sum(rate(db_retry_attempts_total{service_name=\"$service\"}[$__rate_interval])) by (method, will_retry)",
@@ -755,102 +1077,29 @@
           "unit": "ops",
           "custom": {
             "lineWidth": 2,
-            "fillOpacity": 15
+            "fillOpacity": 15,
+            "gradientMode": "scheme",
+            "spanNulls": true,
+            "showPoints": "never"
           }
         }
       },
       "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
+        "tooltip": { "mode": "multi", "sort": "desc" },
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max",
-            "lastNotNull"
-          ]
-        }
-      }
-    },
-    {
-      "id": 17,
-      "type": "timeseries",
-      "title": "DB Retry Next Delay Avg (ms)",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 28
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "targets": [
-        {
-          "expr": "1000 * sum(rate(db_retry_next_delay_sum{service_name=\"$service\"}[$__rate_interval])) / clamp_min(sum(rate(db_retry_next_delay_count{service_name=\"$service\"}[$__rate_interval])), 0.001)",
-          "legendFormat": "avg next delay"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ms",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 10
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 200
-              },
-              {
-                "color": "red",
-                "value": 1000
-              }
-            ]
-          }
-        }
-      },
-      "options": {
-        "tooltip": {
-          "mode": "single",
-          "sort": "desc"
-        },
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max",
-            "lastNotNull"
-          ]
+          "calcs": ["mean", "max", "lastNotNull"]
         }
       }
     },
     {
       "id": 18,
-      "type": "barchart",
+      "type": "piechart",
       "title": "Business Errors by Code",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 36
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "description": "Distribuição de erros de negócio por código de erro no período selecionado.",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 48 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "sum(increase(person_errors_total{service_name=\"$service\"}[$__range])) by (error_code)",
@@ -864,130 +1113,23 @@
         }
       },
       "options": {
-        "orientation": "horizontal",
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "single"
-        }
-      }
-    },
-    {
-      "id": 19,
-      "type": "timeseries",
-      "title": "Top 5xx Endpoints (req/s)",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 36
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "targets": [
-        {
-          "expr": "topk(10, sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\", http_response_status_code=~\"5..\"}[$__rate_interval])) by (http_request_method, url_template))",
-          "legendFormat": "{{http_request_method}} {{url_template}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 10
-          }
-        }
-      },
-      "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "pieType": "donut",
         "legend": {
           "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max",
-            "lastNotNull"
-          ]
-        }
-      }
-    },
-    {
-      "id": 20,
-      "type": "timeseries",
-      "title": "CPU & Heap Usage (%)",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 44
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "targets": [
-        {
-          "expr": "process_cpu_usage{service_name=\"$service\"} * 100",
-          "legendFormat": "process cpu %"
+          "placement": "right",
+          "values": ["value", "percent"]
         },
-        {
-          "expr": "system_cpu_usage{service_name=\"$service\"} * 100",
-          "legendFormat": "system cpu %"
-        },
-        {
-          "expr": "100 * sum(jvm_memory_used_bytes{service_name=\"$service\", area=\"heap\"}) / clamp_min(sum(jvm_memory_max_bytes{service_name=\"$service\", area=\"heap\"}), 1)",
-          "legendFormat": "heap used %"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 10
-          }
-        }
-      },
-      "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max",
-            "lastNotNull"
-          ]
-        }
+        "tooltip": { "mode": "single" }
       }
     },
     {
       "id": 21,
       "type": "timeseries",
       "title": "HTTP Access Outcomes",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 44
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
+      "description": "Classificação de acesso HTTP por outcome: SUCCESS, CLIENT_ERROR, SERVER_ERROR, SLOW.",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 48 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
           "expr": "sum(rate(http_access_events_total{service_name=\"$service\"}[$__rate_interval])) by (outcome)",
@@ -999,23 +1141,95 @@
           "unit": "ops",
           "custom": {
             "lineWidth": 2,
-            "fillOpacity": 15
+            "fillOpacity": 15,
+            "gradientMode": "scheme",
+            "spanNulls": true,
+            "showPoints": "never"
           }
         }
       },
       "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
+        "tooltip": { "mode": "multi", "sort": "desc" },
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max",
-            "lastNotNull"
-          ]
+          "calcs": ["mean", "max", "lastNotNull"]
+        }
+      }
+    },
+    {
+      "id": 19,
+      "type": "timeseries",
+      "title": "Top 5xx Endpoints (req/s)",
+      "description": "Endpoints com maior taxa de erros 5xx por segundo.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 56 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "topk(10, sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\", http_response_status_code=~\"5..\"}[$__rate_interval])) by (http_request_method, url_template))",
+          "legendFormat": "{{http_request_method}} {{url_template}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "scheme",
+            "spanNulls": true,
+            "showPoints": "never"
+          }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "max", "lastNotNull"]
+        }
+      }
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "DB Retry Next Delay Avg (ms)",
+      "description": "Delay médio entre tentativas de retry de banco. Valores crescentes indicam backoff exponencial.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 56 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "1000 * sum(rate(db_retry_next_delay_sum{service_name=\"$service\"}[$__rate_interval])) / clamp_min(sum(rate(db_retry_next_delay_count{service_name=\"$service\"}[$__rate_interval])), 0.001)",
+          "legendFormat": "avg next delay"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "scheme",
+            "spanNulls": true,
+            "showPoints": "never"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 200 },
+              { "color": "red", "value": 1000 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "single", "sort": "desc" },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": ["mean", "max", "lastNotNull"]
         }
       }
     }
